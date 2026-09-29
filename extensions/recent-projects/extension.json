@@ -1,0 +1,16 @@
+{
+  "name": "Recent projects",
+  "version": "0.1.0",
+  "author": "Thomas Torggler",
+  "description": "Reopen a recent VS Code, VSCodium or Cursor project: proj keystroke",
+  "apiVersion": 1,
+  "icon": "󰨞",
+  "color": "#3fa7f0",
+  "license": "MIT",
+  "commands": [{
+    "id": "proj", "prefix": "proj", "title": "Open a recent project",
+    "summary": "A folder, workspace or remote a VS Code-family editor opened recently",
+    "args": [{ "name": "name", "hint": "a project name or part of its path", "rest": true }],
+    "examples": ["proj keystroke", "proj cursor dotfiles"]
+  }]
+}
