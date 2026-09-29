@@ -25,6 +25,68 @@
   tests; full QML suite 270 passed; `tests/lint.sh` adds nothing for
   `providers/AiWeb.qml`; `bin/keystroke validate` passes.
 
+## Release 1.4.4 (2026-09-20)
+
+- Contents since 1.4.3: the results cleanup (`ui/ResultRow.qml` drops the
+  badge, the key hint and the ↵ swap on selection; `Keystroke.qml` builds
+  the footer's action list from `verb`, `altVerb`, `appId`, a query action
+  and the screen; `ui/PreviewPane.qml` shows the badge beside the detail
+  line; `core/Files.js` and `extensions/browser-search` carry a preview
+  only for images or not at all), the confirmation sheet
+  (`ui/ConfirmSheet.qml` rewritten; `confirmText`/`cancelText` on rows
+  from `core/Extensions.js`, `core/SettingsTree.js`, the Timer and the
+  uninstall path), the `hint` → `altVerb` conversion across providers and
+  extensions, `docs/providers.md`, and every screenshot re-rendered with
+  `tools/showcase/offscreen.py`. `manifest.json` 1.4.3 → 1.4.4.
+  `matching/bin/keystroke-matching` and its manifest are untouched since
+  the verified 1.4.2 commit (SHA-256 `192ef1ec…`).
+- `bin/keystroke test` on `ca74b79` (before the last footer fix and the
+  screenshots): 265 QML tests passed, 0 failed; every integration check
+  passed in one run, including `tests/palette_dictation_check.py`;
+  `tests/lint.sh` exit 0 with the existing metadata warnings only. After
+  `779758c`: the QML suite (265 passed), the commands, shortcut, URL,
+  extensions, dictation, route and files palette checks, the browser,
+  translate and timer extension suites, and `python3 site/check.py` (35
+  screenshots) pass; `omarchy plugin validate` exit 0.
+- Reviewed offscreen: every scene on two contact sheets, plus the Files,
+  Timer, Applications, suggest, Extensions and both confirmation scenes
+  one by one. Not exercised in the live shell: the sheet's mouse targets
+  (the two actions and the scrim), which share the `canceled`/`confirmed`
+  signals the keys use.
+- The extension and engine workflows are green on `ca74b79`. The attest
+  job first runs on the `v1.4.4` tag.
+
+## Release 1.4.3 (2026-09-20)
+
+- Contents since 1.4.2: the Open URL provider (`core/Url.js`,
+  `providers/OpenUrl.qml`, the `//` guard in `core/Commands.js`), the
+  Browser search and GIF Search extensions with their review fixes and the
+  `immutable=1` read of a locked history database, Keyboard Cleaner 1.1.0
+  (power node inside the block, held-key guard, idle parking, `--dry-run`)
+  from its author's pull request, and the Delete-to-uninstall fix with its
+  forward-delete follow-up. `manifest.json` 1.4.2 → 1.4.3; README lists the
+  six extensions in the box and points at the 1.4.3 notes.
+  `matching/bin/keystroke-matching` and its manifest are untouched since
+  the verified 1.4.2 commit.
+- `bin/keystroke test` on the dev tip (`7e8c8ad`) plus the release docs:
+  265 QML tests passed, 0 failed; every integration check passed
+  (applications, files, catalog, matching, palette matching, shortcut, dmenu,
+  routes, motion, worker, engine, voxtype, clipboard, codex, time zones,
+  extensions, currency, commands, URL, extension checks for all six
+  extensions, hotkeys); `tests/lint.sh` exit 0 with the existing metadata
+  warnings only; `omarchy plugin validate` exit 0; `git diff --check` clean.
+- `tests/palette_dictation_check.py` failed its first run on this tree with
+  `FAIL copy closes palette` followed by a Quickshell abort ("Object
+  destroyed while one of its QML signal handlers is in progress") that
+  outlived the check's 12 s subprocess timeout, so the runner stopped
+  there and the later checks were run one by one. The same check fails
+  the same way about one run in four on a clean export of the `v1.4.2`
+  tag (1 of 4) and passes the other runs on dev (3 of 4), so it is a timing
+  flake in the check, not a change in this release. Recorded here for the
+  follow-up; the check's assertions all pass when the run completes.
+- The extension and engine workflows are green on `7e8c8ad`. Not
+  exercised here: the attest job, which first runs on the `v1.4.3` tag.
+
 ## Browser search review fixes (2026-09-12)
 
 - The service judged a helper run inside `onExited`, reading output that only
@@ -1030,3 +1092,31 @@ Keystroke menu. The stable `main` / `v1-voice` checkpoint is unchanged.
   `omarchy plugin validate` exit 0; `git diff --check` clean. The engine
   workflow and the extension check are green on the same commit. Not
   exercised here: the attest job, which first runs on the `v1.4.2` tag.
+
+## Clipboard paste on selection (2026-09-25, reworked 2026-09-29)
+
+Contributed by Pablo Pineda (#16); reworked on the PR branch in review.
+
+- Clipboard History rows carry Copy and Paste as `↵` and `Ctrl+↵`. The new
+  **Paste on selection** setting (off by default) swaps them. The footer names
+  both through the existing `verb`/`altVerb` pair.
+- Paste is a host effect, `{type:"paste", text}` or `{type:"paste", mime,
+  path}`. Text goes through `ClipboardTransfer` (copy over stdin, close, 100 ms,
+  paste) with a per-transfer paste command. Images go through
+  `bin/keystroke-paste --file`. Dictation's paste keeps the existing
+  `Shift+Insert` command.
+- `bin/keystroke-paste` picks `Ctrl+Shift+V` when the active window carries
+  Omarchy's `terminal` tag or a desktop entry (by file name or
+  `StartupWMClass`, in any XDG data dir) lists TerminalEmulator. Everywhere
+  else it picks `Ctrl+V`, and **Paste shortcut** can force `Shift+Insert`. The
+  lookup is two `grep` calls rather than one per desktop file, down from
+  about 210 ms to 34 ms on a 135-entry machine for a non-terminal window.
+- `tests/clipboard_provider_check.py` covers the default and swapped pairs for
+  text and images and the shortcut override.
+  `tests/clipboard_paste_shortcut_check.py` covers the tag, a desktop entry in a
+  second data dir, a matching file name, a non-terminal entry, the override
+  and the image copy. `tests/palette_dictation_check.py` now also drives a
+  `paste` effect through the palette with a fake helper: the palette closes and
+  the helper receives `--shift-insert`. `tests/clipboard_transfer_check.py`
+  is unchanged and passes.
+- Not exercised: a real paste into applications, which needs the live desktop.
