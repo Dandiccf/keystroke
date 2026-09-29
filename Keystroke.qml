@@ -27,6 +27,8 @@ Item {
 
   // Injected by omarchy-shell when the plugin loads.
   property string omarchyPath: Quickshell.env("OMARCHY_PATH")
+  // Picks the paste key for the focused window: Ctrl+Shift+V in terminals, Ctrl+V elsewhere.
+  property string pasteHelper: decodeURIComponent(String(Qt.resolvedUrl("bin/keystroke-paste")).replace(/^file:\/\//, ""))
   property var shell: null
   property var manifest: null
   property var pluginRegistry: null
@@ -908,6 +910,7 @@ Item {
     if (type === "app") return "Launch"
     if (type === "query") return "Type"
     if (type === "dictation-copy") return effect.paste ? "Paste" : "Copy"
+    if (type === "paste") return "Paste"
     return "Run"
   }
   function normalize(row, entry, q, boost) {
@@ -1151,6 +1154,12 @@ Item {
       return
     }
     if (type === "dictation-copy") { clipboardTransfer.submit(effect.text, effect.paste); return }
+    if (type === "paste") {
+      var paste = [root.pasteHelper].concat(effect.shortcut === "shift-insert" ? ["--shift-insert"] : [])
+      if (effect.path) { root.cancel(); Util.execArgv(paste.concat(["--file", String(effect.mime || "image/png"), String(effect.path)])) }
+      else clipboardTransfer.submit(effect.text, true, paste)
+      return
+    }
     if (type === "query") { root.typeQuery(effect.text); return }
     if (type === "navigate") { root.navigate(effect.scope, effect.title || row.title); return }
     if (type === "setting") {

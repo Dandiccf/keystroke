@@ -19,7 +19,14 @@ Item {
     icon: "󰅌",
     color: "#8dbaec",
     description: "Uses Omarchy's existing history",
-    settings: [{ key: "limit", type: "number", label: "Maximum entries", "default": 100, min: 1, max: 300, integer: true }],
+    settings: [
+      { key: "limit", type: "number", label: "Maximum entries", "default": 100, min: 1, max: 300, integer: true },
+      { key: "pasteOnSelect", type: "boolean", label: "Paste on selection", "default": false,
+        description: "On, ↵ pastes into the window you came from and Ctrl+↵ copies. Off, the reverse" },
+      { key: "pasteShortcut", type: "enum", label: "Paste shortcut", "default": "auto",
+        options: ["auto", "shift-insert"], optionLabels: { "auto": "Automatic", "shift-insert": "Shift+Insert" },
+        description: "Automatic uses Ctrl+Shift+V for terminals and Ctrl+V elsewhere" }
+    ],
     query: function(ctx) { return root.query(ctx) }
   })
 
@@ -59,6 +66,7 @@ Item {
     }
     var rows = []
     var limit = ctx.settings.limit
+    var pasteFirst = ctx.settings.pasteOnSelect === true
     for (var i = 0; i < root.entries.length && i < limit; i++) {
       var e = root.entries[i]
       var image = e.type === "image"
@@ -67,11 +75,16 @@ Item {
       // The title (first line) is fuzzy; the body is prose, matched by word.
       var score = Match.match(ctx.query, title, "", "", image ? "" : e.search)
       if (!score) continue
+      // ↵ and Ctrl+↵ are Copy and Paste; the setting decides which is which.
+      var copy = image ? { type: "exec", argv: [root.omarchyPath + "/bin/omarchy-clipboard-paste-file", "--copy-only", e.mime, e.path] }
+                       : { type: "copy", text: text }
+      var paste = image ? { type: "paste", mime: e.mime, path: e.path, shortcut: ctx.settings.pasteShortcut }
+                        : { type: "paste", text: text, shortcut: ctx.settings.pasteShortcut }
       rows.push({
         id: Qt.md5(image ? e.path : text), title: title, subtitle: image ? "Image" : text.length + " characters", icon: "󰅌",
-        section: "Clipboard", verb: "Copy", tier: "item", score: score, order: i,
-        action: image ? { type: "exec", argv: [root.omarchyPath + "/bin/omarchy-clipboard-paste-file", "--copy-only", e.mime, e.path] }
-                      : { type: "copy", text: text },
+        section: "Clipboard", tier: "item", score: score, order: i,
+        verb: pasteFirst ? "Paste" : "Copy", action: pasteFirst ? paste : copy,
+        altVerb: pasteFirst ? "Copy" : "Paste", altAction: pasteFirst ? copy : paste,
         preview: text.slice(0, 12000), previewImage: image ? e.path : "", previewLabel: "CLIPBOARD",
         previewDetail: "Copied locally · never included in global search"
       })

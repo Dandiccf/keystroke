@@ -3,10 +3,12 @@ import Quickshell.Io
 
 // Copy completes before the palette closes. Only then allow 100 ms for focus
 // restoration and dispatch a paste shortcut. Text travels over stdin, not shell.
+// submit() may name its own paste command for one transfer.
 Item {
   id: root
   property var copyCommand: ["wl-copy"]
   property var pasteCommand: ["wtype", "-M", "shift", "-k", "Insert", "-m", "shift"]
+  property var activePasteCommand: pasteCommand
   property bool busy: false
   property bool pasteAfterCopy: false
   property string payload: ""
@@ -14,11 +16,12 @@ Item {
   signal completed()
   signal failed(string message)
 
-  function submit(text, paste) {
+  function submit(text, paste, command) {
     if (root.busy || copyProc.running || pasteProc.running || !String(text || "").trim()) return false
     root.busy = true
     root.payload = String(text)
     root.pasteAfterCopy = paste === true
+    root.activePasteCommand = command || root.pasteCommand
     copyProc.stdinEnabled = true
     copyProc.running = true
     deadline.restart()
@@ -49,7 +52,7 @@ Item {
   Timer { id: delay; interval: 100; onTriggered: pasteProc.running = true }
   Process {
     id: pasteProc
-    command: root.pasteCommand
+    command: root.activePasteCommand
     onExited: function(code) {
       if (!root.busy) return
       root.busy = false; deadline.stop()
