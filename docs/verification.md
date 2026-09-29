@@ -1067,3 +1067,31 @@ Keystroke menu. The stable `main` / `v1-voice` checkpoint is unchanged.
   `omarchy plugin validate` exit 0; `git diff --check` clean. The engine
   workflow and the extension check are green on the same commit. Not
   exercised here: the attest job, which first runs on the `v1.4.2` tag.
+
+## Clipboard paste on selection (2026-09-25, reworked 2026-09-29)
+
+Contributed by Pablo Pineda (#16); reworked on the PR branch in review.
+
+- Clipboard History rows carry Copy and Paste as `↵` and `Ctrl+↵`. The new
+  **Paste on selection** setting (off by default) swaps them. The footer names
+  both through the existing `verb`/`altVerb` pair.
+- Paste is a host effect, `{type:"paste", text}` or `{type:"paste", mime,
+  path}`. Text goes through `ClipboardTransfer` (copy over stdin, close, 100 ms,
+  paste) with a per-transfer paste command. Images go through
+  `bin/keystroke-paste --file`. Dictation's paste keeps the existing
+  `Shift+Insert` command.
+- `bin/keystroke-paste` picks `Ctrl+Shift+V` when the active window carries
+  Omarchy's `terminal` tag or a desktop entry (by file name or
+  `StartupWMClass`, in any XDG data dir) lists TerminalEmulator. Everywhere
+  else it picks `Ctrl+V`, and **Paste shortcut** can force `Shift+Insert`. The
+  lookup is two `grep` calls rather than one per desktop file, down from
+  about 210 ms to 34 ms on a 135-entry machine for a non-terminal window.
+- `tests/clipboard_provider_check.py` covers the default and swapped pairs for
+  text and images and the shortcut override.
+  `tests/clipboard_paste_shortcut_check.py` covers the tag, a desktop entry in a
+  second data dir, a matching file name, a non-terminal entry, the override
+  and the image copy. `tests/palette_dictation_check.py` now also drives a
+  `paste` effect through the palette with a fake helper: the palette closes and
+  the helper receives `--shift-insert`. `tests/clipboard_transfer_check.py`
+  is unchanged and passes.
+- Not exercised: a real paste into applications, which needs the live desktop.
