@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Clipboard provider defaults and both copy/paste actions."""
+"""Verify Clipboard provider defaults and the Copy/Paste action pair."""
 import os
 from pathlib import Path
 import subprocess
@@ -28,15 +28,16 @@ ShellRoot {
     var ctx = { scope: "clipboard", query: "", settings: settings }
     var rows = clipboard.query(ctx)
     check(rows.length === 2, "expected both clipboard entries")
-    check(rows[0].action.type === "copy" && rows[1].action.argv[1] === "--copy-only", "default actions must copy")
+    check(rows[0].verb === "Copy" && rows[0].action.type === "copy" && rows[1].action.argv[1] === "--copy-only", "↵ copies by default")
+    check(rows[0].altVerb === "Paste" && rows[0].altAction.type === "paste" && rows[0].altAction.text === "hello", "Ctrl+↵ pastes text by default")
+    check(rows[1].altAction.type === "paste" && rows[1].altAction.path === "/tmp/example.png" && rows[1].altAction.mime === "image/png", "Ctrl+↵ pastes images by default")
     settings.pasteOnSelect = true
     rows = clipboard.query(ctx)
-    check(rows[0].verb === "Paste" && rows[0].action.type === "dictation-copy" && rows[0].action.paste === true, "text must paste")
-    check(rows[1].verb === "Paste" && rows[1].action.argv[0].endsWith("/bin/keystroke-paste") && rows[1].action.argv[1] === "--file", "image must use the paste helper")
+    check(rows[0].verb === "Paste" && rows[0].action.type === "paste" && rows[0].altVerb === "Copy" && rows[0].altAction.type === "copy", "paste on selection swaps the keys for text")
+    check(rows[1].verb === "Paste" && rows[1].action.type === "paste" && rows[1].altAction.argv[1] === "--copy-only", "paste on selection swaps the keys for images")
     settings.pasteShortcut = "shift-insert"
     rows = clipboard.query(ctx)
-    check(rows[0].action.pasteShortcut === "shift-insert", "text override must be passed to the transfer")
-    check(rows[1].action.argv[1] === "--shift-insert", "image override must reach the paste helper")
+    check(rows[0].action.shortcut === "shift-insert" && rows[1].action.shortcut === "shift-insert", "the shortcut override reaches the paste effect")
     console.log("PASS clipboard provider copy and paste actions"); Qt.quit()
   } }
 }

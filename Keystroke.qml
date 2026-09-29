@@ -27,6 +27,8 @@ Item {
 
   // Injected by omarchy-shell when the plugin loads.
   property string omarchyPath: Quickshell.env("OMARCHY_PATH")
+  // Picks the paste key for the focused window: Ctrl+Shift+V in terminals, Ctrl+V elsewhere.
+  property string pasteHelper: decodeURIComponent(String(Qt.resolvedUrl("bin/keystroke-paste")).replace(/^file:\/\//, ""))
   property var shell: null
   property var manifest: null
   property var pluginRegistry: null
@@ -317,7 +319,6 @@ Item {
   property string dictationPending: ""   // explicit Enter intent: copy | paste
   ClipboardTransfer {
     id: clipboardTransfer
-    pasteCommand: [Qt.resolvedUrl("bin/keystroke-paste").toString().replace("file://", "")]
     onCopied: root.cancel(true)
     onFailed: function(message) {
       if (root.opened) root.errorMessage = message
@@ -329,10 +330,7 @@ Item {
     if (voice.active) {
       if (!root.dictationPending) root.dictationPending = alternate ? "paste" : "copy"
       root.voiceStop()
-    } else {
-      clipboardTransfer.pasteCommand = [Qt.resolvedUrl("bin/keystroke-paste").toString().replace("file://", "")]
-      clipboardTransfer.submit(search.text, alternate)
-    }
+    } else clipboardTransfer.submit(search.text, alternate)
   }
   property string voiceRawText: ""
   readonly property bool liveText: voice.active && search.text.length > 0
@@ -387,10 +385,7 @@ Item {
       var pendingCopy = root.dictationPending
       root.dictationPending = ""
       root.statusMessage = "Enter copies · Ctrl+Enter pastes"
-      if (pendingCopy) {
-        clipboardTransfer.pasteCommand = [Qt.resolvedUrl("bin/keystroke-paste").toString().replace("file://", "")]
-        clipboardTransfer.submit(text, pendingCopy === "paste")
-      }
+      if (pendingCopy) clipboardTransfer.submit(text, pendingCopy === "paste")
     } else root.statusMessage = "Transcribed · press ↵ to run"
   }
   function isSuperKey(key) { return key === Qt.Key_Super_L || key === Qt.Key_Super_R || key === Qt.Key_Meta || key === Qt.Key_Hyper_L || key === Qt.Key_Hyper_R }
@@ -915,6 +910,7 @@ Item {
     if (type === "app") return "Launch"
     if (type === "query") return "Type"
     if (type === "dictation-copy") return effect.paste ? "Paste" : "Copy"
+    if (type === "paste") return "Paste"
     return "Run"
   }
   function normalize(row, entry, q, boost) {
@@ -1157,10 +1153,11 @@ Item {
       if (!root.voiceBegin("tap")) root.errorMessage = "Voice is unavailable; check Settings › Voice"
       return
     }
-    if (type === "dictation-copy") {
-      clipboardTransfer.pasteCommand = [Qt.resolvedUrl("bin/keystroke-paste").toString().replace("file://", "")]
-        .concat(effect.pasteShortcut === "shift-insert" ? ["--shift-insert"] : [])
-      clipboardTransfer.submit(effect.text, effect.paste)
+    if (type === "dictation-copy") { clipboardTransfer.submit(effect.text, effect.paste); return }
+    if (type === "paste") {
+      var paste = [root.pasteHelper].concat(effect.shortcut === "shift-insert" ? ["--shift-insert"] : [])
+      if (effect.path) { root.cancel(); Util.execArgv(paste.concat(["--file", String(effect.mime || "image/png"), String(effect.path)])) }
+      else clipboardTransfer.submit(effect.text, true, paste)
       return
     }
     if (type === "query") { root.typeQuery(effect.text); return }

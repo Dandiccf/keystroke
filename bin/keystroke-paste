@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Paste into the focused window after Keystroke has released keyboard focus.
+# Terminals get Ctrl+Shift+V, everything else Ctrl+V; --shift-insert forces
+# Shift+Insert. --file MIME PATH copies that file to the clipboard first.
 set -euo pipefail
 
 force_shift_insert=false
@@ -25,26 +27,26 @@ window=$(hyprctl activewindow -j 2>/dev/null) || exit 1
 class=$(jq -r '.class // ""' <<< "$window")
 [[ -n $class ]] || exit 1
 
-is_terminal=false
-if jq -e 'any(.tags[]?; sub("\\*$"; "") == "terminal")' <<< "$window" >/dev/null; then
-  is_terminal=true
-else
-  # Desktop files identify terminal emulators that Omarchy has not tagged yet.
-  data_dirs=${XDG_DATA_DIRS:-/usr/local/share:/usr/share}
-  for base in "${XDG_DATA_HOME:-$HOME/.local/share}" ${data_dirs//:/ }; do
-    for desktop in "$base"/applications/*.desktop; do
-      [[ -f $desktop ]] || continue
-      if [[ ${desktop##*/} == "$class.desktop" ]] || grep -Fxq "StartupWMClass=$class" "$desktop"; then
-        if grep -Eq '^Categories=([^;]*;)*TerminalEmulator(;|$)' "$desktop"; then
-          is_terminal=true
-          break 2
-        fi
-      fi
-    done
+# Omarchy tags the terminals it knows (default/hypr/apps/terminals.lua), the
+# same test its Super+V universal paste uses. Desktop entries catch the rest.
+is_terminal() {
+  jq -e 'any(.tags[]?; sub("\\*$"; "") == "terminal")' <<< "$window" >/dev/null && return 0
+  local base desktops=() named=() matches
+  IFS=: read -ra data_dirs <<< "${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+  shopt -s nullglob
+  for base in "${XDG_DATA_HOME:-$HOME/.local/share}" "${data_dirs[@]}"; do
+    desktops+=("$base"/applications/*.desktop)
+    [[ -f $base/applications/$class.desktop ]] && named+=("$base/applications/$class.desktop")
   done
-fi
+  (( ${#desktops[@]} )) || return 1
+  # One grep for the entries that claim this window, one for their category.
+  matches=$(grep -lFx -- "StartupWMClass=$class" "${desktops[@]}" || true)
+  [[ -n $matches ]] && mapfile -t -O "${#named[@]}" named <<< "$matches"
+  (( ${#named[@]} )) || return 1
+  grep -qE '^Categories=([^;]*;)*TerminalEmulator(;|$)' "${named[@]}"
+}
 
-if [[ $is_terminal == true ]]; then
+if is_terminal; then
   exec wtype -M ctrl -M shift -k v -m shift -m ctrl
 fi
 exec wtype -M ctrl -k v -m ctrl

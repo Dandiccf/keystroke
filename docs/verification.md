@@ -1068,25 +1068,30 @@ Keystroke menu. The stable `main` / `v1-voice` checkpoint is unchanged.
   workflow and the extension check are green on the same commit. Not
   exercised here: the attest job, which first runs on the `v1.4.2` tag.
 
-## Clipboard paste on selection (2026-09-25)
+## Clipboard paste on selection (2026-09-25, reworked 2026-09-29)
 
-- Clipboard History gains a schema setting, **Paste on selection**, off by
-  default. Text uses the existing copy/close/paste transfer; images use a
-  shared local helper. The default copy actions remain unchanged.
-- **Paste shortcut** defaults to Automatic: `Ctrl+Shift+V` for terminal windows
-  identified by Omarchy tags or desktop metadata, and `Ctrl+V` elsewhere.
-  `Shift+Insert` remains available as an override.
-- `tests/clipboard_provider_check.py` passed: defaults, text and image copy
-  actions, text and image paste actions, and shortcut setting. The new
-  `tests/clipboard_paste_shortcut_check.py` passed normal, tagged-terminal,
-  desktop-categorized terminal, override, and image-copy cases. The existing
-  `tests/clipboard_transfer_check.py` passed copy-before-paste ordering,
-  cancellation and failure checks.
-- Offscreen `bin/keystroke test` reached 265 QML tests and the palette motion
-  check with no failures, then stopped because `uv` is unavailable here.
-  The clipboard, dictation and extension integration checks passed separately.
-  `omarchy plugin validate` and `tests/lint.sh` exited 0.
-- The local installation was verified through the running shell after a shell
-  restart: its Clipboard History settings listed **Paste on selection** and
-  **Paste shortcut**. Interactive paste into individual applications was not
-  exercised by the automated checks.
+Contributed by Pablo Pineda (#16); reworked on the PR branch in review.
+
+- Clipboard History rows carry Copy and Paste as `↵` and `Ctrl+↵`. The new
+  **Paste on selection** setting (off by default) swaps them. The footer names
+  both through the existing `verb`/`altVerb` pair.
+- Paste is a host effect, `{type:"paste", text}` or `{type:"paste", mime,
+  path}`. Text goes through `ClipboardTransfer` (copy over stdin, close, 100 ms,
+  paste) with a per-transfer paste command. Images go through
+  `bin/keystroke-paste --file`. Dictation's paste keeps the existing
+  `Shift+Insert` command.
+- `bin/keystroke-paste` picks `Ctrl+Shift+V` when the active window carries
+  Omarchy's `terminal` tag or a desktop entry (by file name or
+  `StartupWMClass`, in any XDG data dir) lists TerminalEmulator. Everywhere
+  else it picks `Ctrl+V`, and **Paste shortcut** can force `Shift+Insert`. The
+  lookup is two `grep` calls rather than one per desktop file, down from
+  about 210 ms to 34 ms on a 135-entry machine for a non-terminal window.
+- `tests/clipboard_provider_check.py` covers the default and swapped pairs for
+  text and images and the shortcut override.
+  `tests/clipboard_paste_shortcut_check.py` covers the tag, a desktop entry in a
+  second data dir, a matching file name, a non-terminal entry, the override
+  and the image copy. `tests/palette_dictation_check.py` now also drives a
+  `paste` effect through the palette with a fake helper: the palette closes and
+  the helper receives `--shift-insert`. `tests/clipboard_transfer_check.py`
+  is unchanged and passes.
+- Not exercised: a real paste into applications, which needs the live desktop.
