@@ -1,5 +1,32 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
+## Release 1.5.0 (2026-09-29)
+
+- Contents since 1.4.4, all merged from contributor PRs on 2026-09-29: the
+  Browser profiles extension (#17, `extensions/browser-profiles`), the Recent
+  projects extension (#18, `extensions/recent-projects`), paste from
+  clipboard history (#16: `providers/Clipboard.qml`, `bin/keystroke-paste`,
+  the `paste` effect in `Keystroke.qml`, a per-transfer paste command in
+  `voice/ClipboardTransfer.qml`) and the Cursor hand-off (#15:
+  `core/AiTargets.js`, `providers/AiWeb.qml`). README, guide,
+  `docs/providers.md`, and the clipboard and extensions screenshots
+  re-rendered with `tools/showcase/offscreen.py`. `manifest.json` 1.4.4 →
+  1.5.0. Nothing under `matching/` changed since the verified 1.4.2 commit
+  (engine SHA-256 `192ef1ec…`).
+- `bin/keystroke test` on `6252869`: 270 QML tests passed, 0 failed; every
+  check up to and including the clipboard provider, paste shortcut,
+  transfer and Codex session checks passed, then
+  `tests/palette_dictation_check.py` hit its known timeout (passed alone on
+  the third try). The remaining checks run one by one: tz helper, palette
+  extensions, currency, commands and URL checks, `tools/check_extensions.py`
+  (eight extensions), hotkeys, both new extensions' palette checks. All
+  passed. `tests/lint.sh` exit 0; `omarchy plugin validate` exit 0;
+  `python3 site/check.py` passes (35 screenshots).
+- Not exercised on this machine: a real paste into applications, the
+  Firefox-family profile launch, Recent projects against a VS Code-family
+  editor with history (none installed here), and Cursor's `workspace=`
+  deeplink parameter (undocumented by Cursor; harmless if ignored).
+
 ## Cursor Agent hand-off (2026-09-19)
 
 - AI & Web Search detects `cursor` and `agent` on PATH. Desktop mode opens
