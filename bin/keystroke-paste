@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Paste into the focused window after Keystroke has released keyboard focus.
+# Terminals get Ctrl+Shift+V, everything else Ctrl+V; --shift-insert forces
+# Shift+Insert. --file MIME PATH copies that file to the clipboard first.
+set -euo pipefail
+
+force_shift_insert=false
+if [[ ${1:-} == --shift-insert ]]; then
+  force_shift_insert=true
+  shift
+fi
+
+if [[ ${1:-} == --file ]]; then
+  (( $# == 3 )) || exit 2
+  [[ -r $3 ]] || exit 1
+  wl-copy --type "$2" < "$3"
+  sleep 0.15
+elif (( $# != 0 )); then
+  exit 2
+fi
+
+if [[ $force_shift_insert == true ]]; then
+  exec wtype -M shift -k Insert -m shift
+fi
+
+window=$(hyprctl activewindow -j 2>/dev/null) || exit 1
+class=$(jq -r '.class // ""' <<< "$window")
+[[ -n $class ]] || exit 1
+
+# Omarchy tags the terminals it knows (default/hypr/apps/terminals.lua), the
+# same test its Super+V universal paste uses. Desktop entries catch the rest.
+is_terminal() {
+  jq -e 'any(.tags[]?; sub("\\*$"; "") == "terminal")' <<< "$window" >/dev/null && return 0
+  local base desktops=() named=() matches
+  IFS=: read -ra data_dirs <<< "${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+  shopt -s nullglob
+  for base in "${XDG_DATA_HOME:-$HOME/.local/share}" "${data_dirs[@]}"; do
+    desktops+=("$base"/applications/*.desktop)
+    [[ -f $base/applications/$class.desktop ]] && named+=("$base/applications/$class.desktop")
+  done
+  (( ${#desktops[@]} )) || return 1
+  # One grep for the entries that claim this window, one for their category.
+  matches=$(grep -lFx -- "StartupWMClass=$class" "${desktops[@]}" || true)
+  [[ -n $matches ]] && mapfile -t -O "${#named[@]}" named <<< "$matches"
+  (( ${#named[@]} )) || return 1
+  grep -qE '^Categories=([^;]*;)*TerminalEmulator(;|$)' "${named[@]}"
+}
+
+if is_terminal; then
+  exec wtype -M ctrl -M shift -k v -m shift -m ctrl
+fi
+exec wtype -M ctrl -k v -m ctrl

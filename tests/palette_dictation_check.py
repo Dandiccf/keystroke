@@ -55,6 +55,9 @@ Item {
 ''')
     helper=work/'copy.py'
     helper.write_text('import pathlib,sys\np=pathlib.Path(__file__).parent\n(p/sys.argv[1]).write_text(sys.stdin.read() if sys.argv[1]=="clipboard" else "pasted")\n')
+    paste_helper=work/'keystroke-paste'
+    paste_helper.write_text('#!/bin/sh\nprintf "%s" "$*" > "$(dirname "$0")/paste-args"\n')
+    paste_helper.chmod(0o755)
     cfg=work/'shell.qml'
     cfg.write_text('''import QtQuick
 import QtTest
@@ -135,13 +138,21 @@ ShellRoot {
       palette.open('{"scope":"codex","title":"Codex"}')
       palette.showProviderView("codex");palette.goBack()
       test.check(palette.opened && palette.scope === "codex", "back keeps the parent provider scope")
-      console.log("PASS: dictation keys, final correction, cancellation, raw prose, model bypass")
-      Qt.quit(); test.stage = 3
+      // A paste effect (clipboard history) copies, closes, then runs the paste helper.
+      palette.pasteHelper = %s
+      palette.open('{}')
+      palette.perform({type:"paste", text:test.text, shortcut:"shift-insert"}, {title:"Clipboard"})
+      test.check(palette.testTransfer.busy, "paste effect starts a transfer")
+      test.stage = 3
+    } else if (test.stage === 3 && !palette.testTransfer.busy) {
+      test.check(!palette.opened, "paste effect closes the palette")
+      console.log("PASS: dictation keys, final correction, cancellation, raw prose, model bypass, paste effect")
+      Qt.quit(); test.stage = 4
     }
   } }
   Timer { interval: 6000; running: true; onTriggered: { console.log("FAIL timeout", test.stage); Qt.quit() } }
 }
-''' % (json.dumps(str(helper)),json.dumps(str(helper))))
+''' % (json.dumps(str(helper)),json.dumps(str(helper)),json.dumps(str(paste_helper))))
     env=os.environ.copy(); env.pop('DISPLAY',None)
     env.update(HOME=str(work), XDG_RUNTIME_DIR=str(work), QT_QPA_PLATFORM='offscreen', QT_QPA_PLATFORMTHEME='generic', QT_QUICK_BACKEND='software', QML_IMPORT_PATH=str(work))
     result=subprocess.run(['quickshell','-p',str(cfg)],env=env,capture_output=True,text=True,timeout=12)
@@ -149,4 +160,5 @@ ShellRoot {
     assert 'PASS: dictation keys' in output and 'FAIL' not in output, output
     assert (work/'clipboard').read_text() == 'Open the document, please.\nKeep  two spaces! 🐈'
     assert (work/'paste').read_text() == 'pasted'
+    assert (work/'paste-args').read_text() == '--shift-insert'
     print('PASS: palette dictation keys, final correction, cancellation, raw prose, model bypass')
