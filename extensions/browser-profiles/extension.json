@@ -1,0 +1,16 @@
+{
+  "name": "Browser profiles",
+  "version": "0.1.0",
+  "author": "Thomas Torggler",
+  "description": "Open a new window in any browser profile: profile work",
+  "apiVersion": 1,
+  "icon": "󰖟",
+  "color": "#56b6c2",
+  "license": "MIT",
+  "commands": [{
+    "id": "profile", "prefix": "profile", "title": "Open a browser profile",
+    "summary": "A new window in one profile of an installed browser",
+    "args": [{ "name": "name", "hint": "a profile name, optionally with the browser's name", "rest": true }],
+    "examples": ["profile work", "profile edge personal"]
+  }]
+}
