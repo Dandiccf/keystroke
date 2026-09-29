@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """List installed browsers and their profiles as JSON for Keystroke.
 
-Prints {"browsers": [...], "errors": [...]} on stdout. Each browser carries the
+Prints {"browsers": [...]} on stdout, or {"browsers": [], "error": "..."}. Each browser carries the
 argv prefix that starts it (`launch`); the QML side appends the profile flags.
 Reads only profile metadata (Chromium's `Local State`, Firefox's
 `profiles.ini`), never history, cookies or other profile data.
