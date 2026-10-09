@@ -1150,6 +1150,8 @@ Contributed by Pablo Pineda (#16); reworked on the PR branch in review.
 
 ## Converter target inferred from the source (2026-10-04)
 
+Contributed by Hemal (#24).
+
 - `core/Units.js`: the target is optional. `35 lb` answers in kilograms,
   `180 cm` in inches, `100 F` in °C, `60 mph` in km/h: each unit names the
   other system's everyday unit as its counterpart. Metres have none, so
@@ -1169,3 +1171,26 @@ Contributed by Pablo Pineda (#16); reworked on the PR branch in review.
   each the selected answer; `2m in feet`, `10 in london` and `45 usd`
   (Currency) answered as before; `10m` produced no converter row. Not
   exercised: `10m` with Timer turned on.
+- In review, offscreen: the real palette at the root with Timer and Currency
+  on (fake `curl` serving a rate table), Files off, and a fake app library
+  holding names that start with a number (`1C Enterprise`, `4G Modem
+  Manager`, `5G Toolkit`, `3D Slicer`, `1Password`, `10 Minute Mail`), run
+  over 80 queries with this `core/Units.js` and with `dev`'s. Every query
+  that answered on `dev` answers the same (`2m in feet`, `72 F to C`,
+  `35 lb to g`, `10 in london`, `45 usd`, `129usd`). `10m`, `10 m`,
+  `10 min`, `45s`, `1h` keep Timer's row with no converter row; `2 min`,
+  `5 s`, `3 cups`, `1 password`, `5 meters`, `250 ml`, `300 k`, `5 gb`,
+  `4k` are unchanged. New answers come only from a number and a unit with a
+  counterpart, and they take the selected row: `1c` and `4g` now answer
+  33.8 °F and 0.14 oz above the app of that name, and a bare hex colour of
+  digits ending in `c` or `f` (`00f`, `20c`) answers as a temperature with
+  the colour row second (`#00f` is unchanged). While an explicit target is
+  being typed, the inferred answer shows at `35 lb`, goes at `35 lb t` and
+  returns at `35 lb to kg`.
+- `tests/tst_units.qml` also walks the whole table: every alias of a unit
+  with a counterpart converts to it. qmltestrunner: 272 passed, 0 failed.
+  `tests/palette_currency_check.py`, `tests/palette_extensions_check.py`,
+  `tests/palette_commands_check.py`, `tests/palette_route_check.py`,
+  `tests/tz_helper_check.py` (52/52), `tools/check_extensions.py` for
+  timer, currency and keyboard-cleaner, `tests/lint.sh`,
+  `bin/keystroke validate` and `git diff --check`: pass.
