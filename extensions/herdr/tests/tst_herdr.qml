@@ -9,7 +9,7 @@ TestCase {
     focused_pane_id: "pane-1",
     workspaces: [ { workspace_id: "workspace-1", number: 1, label: "Project", tab_count: 1, pane_count: 2, agent_status: "working" },
                   { workspace_id: "", label: "No id" } ],
-    tabs: [ { tab_id: "tab-1", workspace_id: "workspace-1", number: 1, label: "", agent_status: "unknown" } ],
+    tabs: [ { tab_id: "tab-1", workspace_id: "workspace-1", number: 1, label: "1", agent_status: "unknown" } ],
     panes: [ { pane_id: "pane-1", cwd: "/home/me/project", terminal_title_stripped: "Implement feature" },
              { pane_id: "pane-2", cwd: "/home/me/project", foreground_cwd: "/home/me/project/api", terminal_title: "" },
              { pane_id: "pane\nbad" } ],
@@ -50,10 +50,12 @@ TestCase {
     compare(rows[0].subtitle, "Claude · ~/project/src · default")
     compare(rows[0].accessory, "Working")
     compare(rows[0].action.argv, ["python3", "/x/herdr.py", "focus", "default", "pane", "pane-1"])
-    compare(rows[2].title, "Tab 1")
+    compare(rows[1].subtitle, "1 tab · 2 panes · default")
+    compare(rows[2].title, "Tab 1")            // Herdr labels an unnamed tab with its number
     compare(rows[2].accessory, "")
     compare(rows[3].title, "api")              // the pane with the agent is listed once, as the agent
     compare(rows[3].subtitle, "~/project/api · default")
+    compare(rows[4].subtitle, "Attached")      // the title already names the session
     compare(rows[4].action.argv, ["python3", "/x/herdr.py", "focus", "default", "session", "-"])
     verify(rows[0].score > rows[1].score)
   }

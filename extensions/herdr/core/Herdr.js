@@ -49,6 +49,14 @@ function tilde(path, home) {
 
 function basename(path) { var parts = String(path || "").split("/"); return parts[parts.length - 1] || "" }
 
+function count(n, word) { n = n || 0; return n + " " + word + (n === 1 ? "" : "s") }
+
+// Herdr labels a tab with its number until it is renamed: "Tab 2", not a bare "2".
+function tabLabel(tab) {
+  var label = String(tab.label || ""), number = String(tab.number || "")
+  return label && label !== number ? label : "Tab " + number
+}
+
 function status(value) {
   var s = String(value || "")
   return s && s !== "unknown" ? title(s) : ""
@@ -73,7 +81,7 @@ function parse(text) {
   return { sessions: sessions, error: typeof value.error === "string" ? value.error : "" }
 }
 
-function status_row(text, subtitle) {
+function statusRow(text, subtitle) {
   return { id: "status", title: text, subtitle: subtitle || "", icon: ICON, section: "Herdr",
     tier: "item", score: 1, disabled: true, action: { type: "noop" } }
 }
@@ -84,7 +92,7 @@ function rows(data, req, helper, home) {
   var multi = data.sessions.length > 1
   function add(kind, session, target, text, subtitle, accessory) {
     var g = group(kind)
-    var where = multi ? session.name : ""
+    var where = multi && kind !== "session" ? session.name : ""
     items.push({ id: "herdr:" + session.name + ":" + kind + ":" + target, title: text,
       subtitle: [subtitle, where].filter(function(s) { return !!s }).join(" · "),
       icon: g.icon, section: g.section, accessory: accessory || "", tier: "item",
@@ -105,11 +113,11 @@ function rows(data, req, helper, home) {
     }
     for (w = 0; w < s.workspaces.length; w++) {
       var ws = s.workspaces[w]
-      add("workspace", s, ws.workspace_id, wsLabel[ws.workspace_id], (ws.tab_count || 0) + " tabs · " + (ws.pane_count || 0) + " panes", status(ws.agent_status))
+      add("workspace", s, ws.workspace_id, wsLabel[ws.workspace_id], count(ws.tab_count, "tab") + " · " + count(ws.pane_count, "pane"), status(ws.agent_status))
     }
     if (req.explicit && req.tabs) for (var t = 0; t < s.tabs.length; t++) {
       var tab = s.tabs[t]
-      add("tab", s, tab.tab_id, String(tab.label || "Tab " + (tab.number || "")), wsLabel[tab.workspace_id] || "", status(tab.agent_status))
+      add("tab", s, tab.tab_id, tabLabel(tab), wsLabel[tab.workspace_id] || "", status(tab.agent_status))
     }
     if (req.explicit && req.panes) for (var p = 0; p < s.panes.length; p++) {
       var pane = s.panes[p]
@@ -128,9 +136,9 @@ function rows(data, req, helper, home) {
   }
   if (req.explicit && !items.length) {
     var broken = data.sessions.filter(function(x) { return !!x.error })
-    if (data.error) items.push(status_row(data.error))
-    else if (broken.length) items.push(status_row("Herdr session " + broken[0].name + " did not answer", broken[0].error))
-    else items.push(status_row("No Herdr session is running", "Start one with herdr"))
+    if (data.error) items.push(statusRow(data.error))
+    else if (broken.length) items.push(statusRow("Herdr session " + broken[0].name + " did not answer", broken[0].error))
+    else items.push(statusRow("No Herdr session is running", "Start one with herdr"))
   }
   return items
 }
