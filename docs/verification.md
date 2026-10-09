@@ -29,6 +29,108 @@
   and handling a fullscreen workspace through `on_focus_under_fullscreen`.
   Windows hidden inside a group are not listed.
 
+## Omarchy menu FileView text() (2026-10-09)
+
+- The two menu FileViews in `providers/OmarchyMenu.qml` read their file with
+  `defaultMenuFile.text()` and `userMenuFile.text()` instead of a bare
+  `text()`. In the contributor's running Omarchy shell the bare call threw
+  "Property 'text' of object FileView_QMLTYPE_6 is not a function" on every
+  load, so neither `omarchy-menu.jsonc` was parsed and Omarchy entries such as
+  the theme switcher stopped opening. The shell has not logged it since the
+  change; a standalone headless quickshell loaded the menu with and without it.
+- Review: not reproduced on Qt 6.11.2, Quickshell 0.3.1, Omarchy 4.0.4.
+  Offscreen, `dev` without the change parsed both files (333 default items, 1
+  user item) and kept them over 25 reloads with the provider hosted plainly,
+  next to an id, a root property and a root function named `text`, inside a
+  Loader, across a Quickshell soft reload, and with the whole `Keystroke.qml`
+  in an asynchronous Loader beside a window, as omarchy-shell hosts it. The
+  error names the FileView as the receiver, so the name was found on the
+  FileView itself (Quickshell's `FileView.qml` declares `text()` as a QML
+  function), not shadowed by an outer object: Qt checks the handler's own ids,
+  then its scope object, before any outer context. The cause is still open;
+  the qualified call reaches the same function through the id and changes
+  nothing where the bare one works. The other bare `text()` calls are left as
+  they are.
+- Ran: `tests/catalog_check.py`, 270 QML tests, `tests/lint.sh` (no new
+  warnings), `bin/keystroke validate`.
+
+## Converter target inferred from the source (2026-10-04)
+
+Contributed by Hemal (#24).
+
+- `core/Units.js`: the target is optional. `35 lb` answers in kilograms,
+  `180 cm` in inches, `100 F` in °C, `60 mph` in km/h: each unit names the
+  other system's everyday unit as its counterpart. Metres have none, so
+  Timer's bare `10m` keeps its row; time, data, millilitres and kelvin have
+  none either and still need a target.
+- `tests/tst_units.qml` covers the counterparts, an explicit target after a
+  bare-looking source, the units without one, and `10 in london` staying a
+  time-zone query. qmltestrunner: 271 passed, 0 failed.
+- `bin/keystroke test` on aarch64: every check before the hotkeys check
+  passed; the hotkeys check fails identically on `dev` without this change
+  (it reads the live bindings, where Terminal is not on `Super + Return`).
+  `tests/lint.sh` exit 0, `omarchy plugin validate` exit 0, `git diff --check`
+  clean.
+- Live, on the desktop: `core/Units.js` copied into the installed plugin and
+  the shell restarted. Over IPC, `35 lb` → `15.87573295 kg`, `180 cm` →
+  `70.86614173 in`, `100 f` → `37.77777778 °C`, `60 mph` → `96.56064 km/h`,
+  each the selected answer; `2m in feet`, `10 in london` and `45 usd`
+  (Currency) answered as before; `10m` produced no converter row. Not
+  exercised: `10m` with Timer turned on.
+- In review, offscreen: the real palette at the root with Timer and Currency
+  on (fake `curl` serving a rate table), Files off, and a fake app library
+  holding names that start with a number (`1C Enterprise`, `4G Modem
+  Manager`, `5G Toolkit`, `3D Slicer`, `1Password`, `10 Minute Mail`), run
+  over 80 queries with this `core/Units.js` and with `dev`'s. Every query
+  that answered on `dev` answers the same (`2m in feet`, `72 F to C`,
+  `35 lb to g`, `10 in london`, `45 usd`, `129usd`). `10m`, `10 m`,
+  `10 min`, `45s`, `1h` keep Timer's row with no converter row; `2 min`,
+  `5 s`, `3 cups`, `1 password`, `5 meters`, `250 ml`, `300 k`, `5 gb`,
+  `4k` are unchanged. New answers come only from a number and a unit with a
+  counterpart, and they take the selected row: `1c` and `4g` now answer
+  33.8 °F and 0.14 oz above the app of that name, and a bare hex colour of
+  digits ending in `c` or `f` (`00f`, `20c`) answers as a temperature with
+  the colour row second (`#00f` is unchanged). While an explicit target is
+  being typed, the inferred answer shows at `35 lb`, goes at `35 lb t` and
+  returns at `35 lb to kg`.
+- `tests/tst_units.qml` also walks the whole table: every alias of a unit
+  with a counterpart converts to it. qmltestrunner: 272 passed, 0 failed.
+  `tests/palette_currency_check.py`, `tests/palette_extensions_check.py`,
+  `tests/palette_commands_check.py`, `tests/palette_route_check.py`,
+  `tests/tz_helper_check.py` (52/52), `tools/check_extensions.py` for
+  timer, currency and keyboard-cleaner, `tests/lint.sh`,
+  `bin/keystroke validate` and `git diff --check`: pass.
+
+## Graphics-loss recovery (2026-10-02)
+
+- A compositor close or a lost graphics resource on the palette's layer surface
+  now cancels the palette, stops the closing animation and completes pending
+  dmenu requests (`windowClosed()` in `Keystroke.qml`). Resource loss is logged
+  and notified once; the next open retries and clears the error, including a
+  picker opened straight after the failure. Before, the palette stayed logically
+  open with no surface, and a waiting `omarchy-menu-select` never returned.
+  Found on a two-monitor machine where the full-screen surface ran out of GPU
+  memory.
+- The two signals may arrive in either order: a loss after the close is still
+  reported, once until the next open. `snapWindow()` is the one place that
+  hides the window at once, shared with the instant transition.
+- `tests/palette_graphics_loss_check.py` emits the close and resource-loss
+  signals from an offscreen Window: immediate unmap despite the slide animation,
+  inspectable error, retry, a stray close with nothing open, both signal orders, picker completion
+  without a selection, one notification per failure. It fails on `main` without
+  the change (checked).
+- Ran: the check above, 270 QML tests, `tests/lint.sh`.
+- Not exercised: a real GPU allocation failure (the signals are injected).
+- Review: a close or loss while the palette is already leaving only snaps the
+  window; it no longer cancels a second time, which dropped the paste that
+  Ctrl+Enter's copy-and-close leaves running. The check covers it and fails
+  without the change. Against Quickshell 0.3.1's own `ProxyWindowBase` (a
+  `FloatingWindow` in place of the `PanelWindow`, offscreen), `QWindow.close()`
+  on the backing window emitted `closed` once and closed the palette at once,
+  `sceneGraphError` emitted `resourcesLost` alone and finished a waiting picker
+  with no selection, and normal fade, instant and `close()` IPC closes emitted
+  neither.
+
 ## Browser search 1.1.0: Helium (2026-09-30)
 
 - `helium.desktop` (the ID Helium's deb, rpm, tarball and the AUR
