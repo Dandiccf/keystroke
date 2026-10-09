@@ -1,5 +1,36 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
+## Windows extension (#26, 2026-10-09)
+
+- New `extensions/windows` (Justin Garza): `>` lists every Hyprland window,
+  most recently used first, from one `hyprctl clients -j` per palette open;
+  Enter closes the palette, then 80 ms later sends `hl.dsp.focus({ window =
+  "address:0x…" })` (or `focuswindow address:0x…` on a hyprlang config)
+  through Quickshell's Hyprland IPC with a hex-validated address. Hyprland
+  0.56 refuses window focus while an exclusive layer surface holds the
+  keyboard (`CFocusState::rawWindowFocus`), which is why it closes first.
+- Review fixes: the last focused window counts as the one you came from only
+  on the focused workspace (or a special one over it), so an empty workspace
+  no longer hides the most recently used window; the root cap ranks
+  word-start, then substring, then scattered matches before cutting, so five
+  long titles holding `c…h…r` no longer crowd Chromium out of `chr` (both
+  reproduced in the new palette check on the submitted code, then fixed).
+- New `extensions/windows/tests/palette_check.py`: the real palette offscreen
+  with a fake `hyprctl` and Quickshell's Hyprland IPC pointed at sockets the
+  script serves (`HYPRLAND_INSTANCE_SIGNATURE`, `XDG_RUNTIME_DIR`), so the
+  dispatch is observed without reaching the compositor. On the branch merged
+  with dev at `18e260d` it passed, as did 11 unit tests,
+  `tools/check_extensions.py` for all nine extensions, the host QML suite
+  (272 passed), `tests/palette_extensions_check.py`,
+  `tests/palette_commands_check.py`, `tests/lint.sh` (existing metadata
+  warnings only) and `bin/keystroke validate`. The full `bin/keystroke test`
+  was not run; nothing outside `extensions/windows` and the docs changed.
+- Not exercised: focusing a real window on the desktop (special workspace,
+  fullscreen, another monitor, the 80 ms delay under load); Hyprland's
+  source shows `focus` opening a special workspace on the current monitor
+  and handling a fullscreen workspace through `on_focus_under_fullscreen`.
+  Windows hidden inside a group are not listed.
+
 ## Herdr extension (2026-10-09)
 
 - New `extensions/herdr` (#27, by Justin Garza): `%` lists the agents,
