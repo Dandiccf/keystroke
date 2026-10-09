@@ -1,5 +1,30 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
+## Omarchy menu FileView text() (2026-10-09)
+
+- The two menu FileViews in `providers/OmarchyMenu.qml` read their file with
+  `defaultMenuFile.text()` and `userMenuFile.text()` instead of a bare
+  `text()`. In the contributor's running Omarchy shell the bare call threw
+  "Property 'text' of object FileView_QMLTYPE_6 is not a function" on every
+  load, so neither `omarchy-menu.jsonc` was parsed and Omarchy entries such as
+  the theme switcher stopped opening. The shell has not logged it since the
+  change; a standalone headless quickshell loaded the menu with and without it.
+- Review: not reproduced on Qt 6.11.2, Quickshell 0.3.1, Omarchy 4.0.4.
+  Offscreen, `dev` without the change parsed both files (333 default items, 1
+  user item) and kept them over 25 reloads with the provider hosted plainly,
+  next to an id, a root property and a root function named `text`, inside a
+  Loader, across a Quickshell soft reload, and with the whole `Keystroke.qml`
+  in an asynchronous Loader beside a window, as omarchy-shell hosts it. The
+  error names the FileView as the receiver, so the name was found on the
+  FileView itself (Quickshell's `FileView.qml` declares `text()` as a QML
+  function), not shadowed by an outer object: Qt checks the handler's own ids,
+  then its scope object, before any outer context. The cause is still open;
+  the qualified call reaches the same function through the id and changes
+  nothing where the bare one works. The other bare `text()` calls are left as
+  they are.
+- Ran: `tests/catalog_check.py`, 270 QML tests, `tests/lint.sh` (no new
+  warnings), `bin/keystroke validate`.
+
 ## Graphics-loss recovery (2026-10-02)
 
 - A compositor close or a lost graphics resource on the palette's layer surface
