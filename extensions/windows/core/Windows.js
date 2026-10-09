@@ -35,7 +35,12 @@ function workspaceLabel(ws) {
 }
 
 // One plain record per mapped client, from hyprctl clients -j shaped objects.
-function windows(clients) {
+// The last focused window (focusHistoryID 0) is the one you came from only
+// when it is on the workspace you are on (`here`, a workspace id) or on a
+// special workspace shown over it: an empty workspace has no focused window,
+// and the last one elsewhere is listed like any other. Without `here`, the
+// last focused window counts as the one you came from.
+function windows(clients, here) {
   var out = []
   for (var i = 0; i < (clients || []).length; i++) {
     var c = clients[i]
@@ -43,12 +48,15 @@ function windows(clients) {
     var a = address(c.address)
     if (!a) continue
     var cls = String(c["class"] || c.initialClass || "")
+    var focus = typeof c.focusHistoryID === "number" && c.focusHistoryID >= 0 ? c.focusHistoryID : 999
+    var ws = c.workspace || {}
+    var current = focus === 0 && (typeof here !== "number" || ws.id === here || String(ws.name || "").indexOf("special") === 0)
     out.push({ address: a, title: String(c.title || c.initialTitle || cls || "Untitled"), cls: cls,
-      workspace: workspaceLabel(c.workspace), focus: typeof c.focusHistoryID === "number" ? c.focusHistoryID : 999 })
+      workspace: workspaceLabel(c.workspace), focus: focus, current: current })
   }
-  // Most recently used first; the focused window (0) is the one you came from, so it goes last.
+  // Most recently used first; the window you came from goes last.
   out.sort(function(x, y) {
-    var fx = x.focus === 0 ? 1e6 : x.focus, fy = y.focus === 0 ? 1e6 : y.focus
+    var fx = x.current ? 1e6 : x.focus, fy = y.current ? 1e6 : y.focus
     return fx - fy
   })
   return out
@@ -70,7 +78,7 @@ function filter(list, req) {
   var out = []
   for (var i = 0; i < list.length && out.length < req.limit; i++) {
     var w = list[i]
-    if (w.focus === 0 && !req.current) continue
+    if (w.current && !req.current) continue
     var hay = (w.title + " " + w.cls).toLowerCase()
     var ok = true
     for (var k = 0; k < words.length && ok; k++) ok = subsequence(words[k], hay)
@@ -95,7 +103,7 @@ function rows(list, req, iconFor) {
   var out = []
   for (var i = 0; i < list.length; i++) {
     var w = list[i]
-    if (w.focus === 0 && !req.current) continue
+    if (w.current && !req.current) continue
     var row = { id: "window:" + w.address, title: w.title, subtitle: [w.cls, w.workspace].filter(function(s) { return !!s }).join(" · "),
       icon: ICON, iconSource: iconFor ? String(iconFor(w.cls) || "") : "", section: SECTION,
       keywords: w.cls, tier: "item", order: out.length, verb: "Switch to",

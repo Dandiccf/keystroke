@@ -46,6 +46,23 @@ TestCase {
     compare(list[2].title, "Spotify")
   }
 
+  function test_came_from_only_on_the_current_workspace() {
+    // On workspace 2 the last focused window (0xbbb) is the one you came from.
+    var list = Windows.windows(clients, 2)
+    verify(list[3].current && list[3].address === "0xbbb")
+    // On an empty workspace it is elsewhere: listed first, like any other.
+    list = Windows.windows(clients, 3)
+    compare(list.map(function(w) { return w.address }), ["0xbbb", "0xccc", "0xaaa", "0xfff"])
+    verify(!list[0].current)
+    compare(Windows.rows(list, Windows.request({ query: ">", command: { rest: "" }, scope: "" }, "windows"), null).length, 4)
+    // Focused in the scratchpad shown over workspace 3: still the one you came from.
+    var scratch = [{ address: "0x1", "class": "a", title: "A", workspace: { id: -98, name: "special:scratchpad" }, focusHistoryID: 0 },
+                   { address: "0x2", "class": "b", title: "B", workspace: { id: 1, name: "1" }, focusHistoryID: -1 }]
+    list = Windows.windows(scratch, 3)
+    verify(list[1].current && list[1].address === "0x1")
+    compare(list[0].focus, 999)   // a window missing from the focus history sorts after the known ones
+  }
+
   function test_rows_skip_focused_unless_asked() {
     var list = Windows.windows(clients)
     var req = Windows.request({ query: ">", command: { rest: "" }, scope: "" }, "windows")

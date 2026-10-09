@@ -78,6 +78,12 @@ QtObject {
     }
   }
 
+  // The workspace you are on, so an empty one does not hide the window you used last.
+  function here() {
+    var ws = Hyprland.focusedWorkspace
+    return ws && typeof ws.id === "number" ? ws.id : null
+  }
+
   readonly property Process worker: Process {
     command: ["hyprctl", "clients", "-j"]
     stdout: StdioCollector { onStreamFinished: { root.output = text; root.outputDone = true; root.settle() } }
@@ -88,7 +94,7 @@ QtObject {
     watchdog.stop()
     var parsed = null
     if (root.exitCode === 0) { try { parsed = JSON.parse(root.output) } catch (_) { parsed = null } }
-    if (Array.isArray(parsed)) root.list = Windows.windows(parsed)
+    if (Array.isArray(parsed)) root.list = Windows.windows(parsed, root.here())
     else if (!root.list) root.list = []
     if (root.host && root.host.opened) root.host.requery({ catalog: false, provider: root.key })
   }
