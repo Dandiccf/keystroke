@@ -34,6 +34,8 @@ FLATPAKS = {
     "com.vivaldi.Vivaldi.desktop": ("Vivaldi", "vivaldi"),
     "org.mozilla.firefox.desktop": ("Firefox", None),
 }
+# Helium renames Chrome's config-home override; CHROME_USER_DATA_DIR stays.
+CONFIG_HOMES = {"net.imput.helium": "HELIUM_CONFIG_HOME"}
 
 
 def default_browser():
@@ -62,7 +64,7 @@ def profiles(desktop, home, config):
     if directory:
         # Chrome honors these overrides before XDG_CONFIG_HOME.
         if not flatpak:
-            config = Path(os.environ.get("CHROME_CONFIG_HOME") or str(config))
+            config = Path(os.environ.get(CONFIG_HOMES.get(directory, "CHROME_CONFIG_HOME")) or str(config))
         data = config / directory
         if not flatpak and os.environ.get("CHROME_USER_DATA_DIR"):
             data = Path(os.environ["CHROME_USER_DATA_DIR"])

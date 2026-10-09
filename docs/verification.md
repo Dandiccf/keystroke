@@ -15,6 +15,18 @@
   bookmarks in the running palette. Host QML unit tests and the wider
   integration suite were not re-run; nothing outside `extensions/browser-search`
   and this log changed.
+- Review follow-up: Helium's Linux branding patch reads `HELIUM_CONFIG_HOME`
+  where Chrome reads `CHROME_CONFIG_HOME` (`CHROME_USER_DATA_DIR` is
+  untouched), so the reader now does the same for Helium. With
+  `CHROME_CONFIG_HOME` set, it had looked for Helium profiles in a directory
+  Helium never uses. New test `test_helium_config_home` fails on the first
+  version and passes now. Passed: ten Python fixture tests, `check-extensions`
+  and the browser palette check. An offscreen palette run (fake HOME, fake
+  `xdg-mime` and `xdg-settings` answering `helium.desktop`, a synthetic Helium
+  profile next to Chromium and `CHROME_CONFIG_HOME` decoys) listed only the
+  Helium history and bookmark, for `browser fixture` and at the root, and named
+  Helium in the "No matching pages" row. No real Helium install was available
+  for the review.
 
 ## Release 1.5.0 (2026-09-29)
 

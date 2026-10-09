@@ -22,10 +22,11 @@ the command prefix can also be renamed there.
   explicit command; it never falls back to another browser's data.
 - Chromium-family browsers: reads `Default` and `Profile *` directories under
   their standard configuration directory. Honors `XDG_CONFIG_HOME`,
-  `CHROME_CONFIG_HOME` and `CHROME_USER_DATA_DIR`. Guest and system profiles
-  are excluded. Firefox: reads the profiles declared in `profiles.ini`,
-  including absolute profile paths. Up to 32 profiles of the detected browser
-  are searched; results open using the browser's normal profile selection.
+  `CHROME_CONFIG_HOME` (`HELIUM_CONFIG_HOME` for Helium) and
+  `CHROME_USER_DATA_DIR`. Guest and system profiles are excluded. Firefox:
+  reads the profiles declared in `profiles.ini`, including absolute profile
+  paths. Up to 32 profiles of the detected browser are searched; results open
+  using the browser's normal profile selection.
 - Custom desktop launchers, command-line profile/data-directory overrides,
   Snap layouts and browsers outside the supported IDs are not detected.
 - At least two characters; all whitespace-separated words must occur in the
