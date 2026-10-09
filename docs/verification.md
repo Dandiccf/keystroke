@@ -18,11 +18,13 @@
 - New `extensions/windows/tests/palette_check.py`: the real palette offscreen
   with a fake `hyprctl` and Quickshell's Hyprland IPC pointed at sockets the
   script serves (`HYPRLAND_INSTANCE_SIGNATURE`, `XDG_RUNTIME_DIR`), so the
-  dispatch is observed without reaching the compositor. Passed, as did 11
-  unit tests, `tools/check_extensions.py` for all nine extensions, the host
-  QML suite (270 passed), `tests/palette_extensions_check.py`,
+  dispatch is observed without reaching the compositor. On the branch merged
+  with dev at `18e260d` it passed, as did 11 unit tests,
+  `tools/check_extensions.py` for all nine extensions, the host QML suite
+  (272 passed), `tests/palette_extensions_check.py`,
   `tests/palette_commands_check.py`, `tests/lint.sh` (existing metadata
-  warnings only) and `bin/keystroke validate`.
+  warnings only) and `bin/keystroke validate`. The full `bin/keystroke test`
+  was not run; nothing outside `extensions/windows` and the docs changed.
 - Not exercised: focusing a real window on the desktop (special workspace,
   fullscreen, another monitor, the 80 ms delay under load); Hyprland's
   source shows `focus` opening a special workspace on the current monitor
