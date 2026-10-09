@@ -1,5 +1,39 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
+## Qt 6.12 palette name collision (2026-10-09)
+
+- Qt 6.12 adds a `Color` singleton to QtQuick (`QtQuick/Color 6.12`:
+  `rgba`, `fromString`, `blend`, ...). In a file that imports `QtQuick` and
+  `qs.Commons`, a bare `Color` now resolves to it, so `Color.menu.*` is
+  undefined: the palette loses its surfaces and accent, and `Keystroke.qml`
+  throws `Cannot read property 'background' of undefined`. Every palette read
+  now goes through `import qs.Commons as Commons` and `Commons.Color`
+  (contributor PR #30, the pattern of omacom/omarchy#14553):
+  `Keystroke.qml`, `codex/ConversationView.qml`, `ui/` (ConfirmSheet,
+  Keycap, PreviewPane, ResultRow, VoiceWave), the GIF Search (1.1.2) and
+  Translate (1.0.1) views, and the inline QML of
+  `tools/showcase/offscreen.py`. CONTRIBUTING.md and `docs/providers.md` tell
+  extension authors to do the same. `Style`, `Border` and `Util` are
+  unaffected (Color is the only name QtQuick, QtQml or Quickshell 0.3.2 add);
+  no QML file or inline test QML in the repository reads a bare `Color`.
+- Qt 6.11.2 (this machine): `bin/keystroke test` passes (270 QML tests,
+  every integration check, eight extensions, lint exit 0 with the same 265
+  warnings as dev); the Translate and GIF Search palette checks pass;
+  `tools/showcase/offscreen.py` renders all 35 screens.
+- Qt 6.12.0, offscreen only: qt6-base, -declarative, -svg, -wayland 6.12.0
+  and quickshell 0.3.2 from the Omarchy edge mirror unpacked into a
+  temporary prefix (nothing installed), with Omarchy's Commons and Ui from
+  omacom/omarchy b83d3df (4.0.4's own `Border.surfaceSpec` throws under
+  6.12). A bare `Color` there is QtQuick's (`Color.menu` undefined,
+  `Color.fromString` a function) and `Commons.Color.menu.background` is the
+  theme's. Seventeen offscreen checks (fifteen from `tests/`, the Translate
+  and GIF Search palette checks) pass on this change; on dev, eleven of them
+  fail with the TypeError above. The 35 showcase screens render without a
+  warning, 34 of them pixel-identical to the 6.11 render (the bar countdown
+  differs in glyph spacing).
+- Not exercised: a live `omarchy-shell` on Qt 6.12 (this machine is on the
+  stable channel); the contributor ran the change in their edge shell.
+
 ## Release 1.5.0 (2026-09-29)
 
 - Contents since 1.4.4, all merged from contributor PRs on 2026-09-29: the
