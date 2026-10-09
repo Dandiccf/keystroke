@@ -16,21 +16,21 @@
   extension authors to do the same. `Style`, `Border` and `Util` are
   unaffected (Color is the only name QtQuick, QtQml or Quickshell 0.3.2 add);
   no QML file or inline test QML in the repository reads a bare `Color`.
-- Qt 6.11.2 (this machine): `bin/keystroke test` passes (270 QML tests,
-  every integration check, eight extensions, lint exit 0 with the same 265
-  warnings as dev); the Translate and GIF Search palette checks pass;
-  `tools/showcase/offscreen.py` renders all 35 screens.
+- Qt 6.11.2 (this machine), merged with dev: `bin/keystroke test` passes
+  (272 QML tests, every integration check, eight extensions, lint exit 0
+  with the same 265 warnings as dev) and so do the Translate and GIF Search
+  palette checks. `tools/showcase/offscreen.py` renders all 35 screens.
 - Qt 6.12.0, offscreen only: qt6-base, -declarative, -svg, -wayland 6.12.0
   and quickshell 0.3.2 from the Omarchy edge mirror unpacked into a
   temporary prefix (nothing installed), with Omarchy's Commons and Ui from
   omacom/omarchy b83d3df (4.0.4's own `Border.surfaceSpec` throws under
   6.12). A bare `Color` there is QtQuick's (`Color.menu` undefined,
   `Color.fromString` a function) and `Commons.Color.menu.background` is the
-  theme's. Seventeen offscreen checks (fifteen from `tests/`, the Translate
-  and GIF Search palette checks) pass on this change; on dev, eleven of them
-  fail with the TypeError above. The 35 showcase screens render without a
-  warning, 34 of them pixel-identical to the 6.11 render (the bar countdown
-  differs in glyph spacing).
+  theme's. Merged with dev, all 23 Quickshell checks (21 from `tests/`, the
+  Translate and GIF Search palette checks) pass; on dev without the change,
+  eleven of the seventeen run there fail with the TypeError above. The 35
+  showcase screens render without a warning, 34 of them pixel-identical to
+  the 6.11 render (the bar countdown differs in glyph spacing).
 - Not exercised: a live `omarchy-shell` on Qt 6.12 (this machine is on the
   stable channel); the contributor ran the change in their edge shell.
 
