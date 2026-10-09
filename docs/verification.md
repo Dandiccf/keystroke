@@ -31,6 +31,45 @@
   and handling a fullscreen workspace through `on_focus_under_fullscreen`.
   Windows hidden inside a group are not listed.
 
+## Herdr extension (2026-10-09)
+
+- New `extensions/herdr` (#27, by Justin Garza): `%` lists the agents,
+  workspaces, tabs, panes and sessions of every running Herdr session; agent
+  and workspace names also match at the root from two characters on. The
+  helper runs once per palette open, reads `herdr session list --json` and one
+  `session.snapshot` per session socket, and focuses with `workspace.focus`,
+  `tab.focus` or `pane.focus` before raising the terminal window through
+  `hyprctl dispatch`, or opening `herdr session attach <name>` in a new one.
+- Against real Herdr 0.8.2 (two headless servers, `default` and `work`, under a
+  throwaway `XDG_CONFIG_HOME`; `hyprctl` and `omarchy-launch-terminal` faked):
+  the request and response shapes match the bundled `herdr api schema`; the
+  helper listed both sessions in about 40 ms; focusing a tab, a workspace and a
+  pane in another workspace moved Herdr's focus there; with fake Hyprland
+  clients it dispatched `hl.dsp.focus` to the right window and fell back to
+  `focuswindow` when the Lua form was refused; with no window it launched the
+  attach. A workspace labelled `infra; rm -rf ~` stayed a title, its argv only
+  ids.
+- Offscreen palette run with the same servers: nothing ran while the
+  extension was off (one `herdr session list` per open after it was turned
+  on, none per keystroke); `%` grouped agents first; `% logs` found the tab;
+  `web` at the root offered the workspace and no tabs, panes or sessions; a
+  one-letter root query showed nothing; `200 - 15%` stayed with the
+  calculator. A failing or missing `herdr` gave one disabled row after `%` and
+  nothing at the root. 1000 `%` queries over this state took about 70 ms.
+- Review fixes: a client started with `herdr --session=work` was taken for one
+  showing `default`, so Enter could raise the wrong window (also `--remote`
+  and `--no-session` clients, which show no local session); unnamed tabs,
+  which Herdr labels with their number, read "1" instead of "Tab 1";
+  workspace counts are singular for one; the helper carries Everything's
+  copyright notice.
+- Passed: 4 helper unit tests, 8 extension QML tests, `check-extensions` for
+  all nine extensions, all 272 host QML tests, `bin/keystroke validate`, the
+  palette extensions and commands checks. Not exercised: a real terminal
+  window running a Herdr client (the window lookup ran against fake processes
+  and fake `hyprctl` clients), a real coding agent detected by Herdr (an agent
+  state was reported with `herdr pane report-agent`), Herdr 0.9, and a
+  session chosen through `HERDR_SESSION` instead of the command line.
+
 ## Omarchy menu FileView text() (2026-10-09)
 
 - The two menu FileViews in `providers/OmarchyMenu.qml` read their file with
