@@ -9,8 +9,9 @@ makes) and the Hyprland window that hosts it, if exactly one does.
 the session, then brings its terminal window forward, or opens a terminal
 attached to the session when none shows it.
 
-Standard library only. Adapted from Everything's Herdr adapter
-(https://github.com/brianblakely/omarchy-everything, MIT, Brian Blakely).
+Standard library only. Adapted from Everything's Herdr adapter,
+https://github.com/brianblakely/omarchy-everything (everything/providers/herdr.py).
+Copyright (c) 2026 Brian Blakely. MIT License; see LICENSE at Keystroke's root.
 """
 import json
 import os
