@@ -64,27 +64,46 @@ function windows(clients, here) {
 
 // The root shows only a handful of windows, so it narrows the list itself:
 // every word of the query must appear, letters in order, in the title or the
-// class. The host's matcher then ranks what is left; explicit requests are
-// left entirely to it.
+// class. Before the cap, windows where every word starts a word come first,
+// then those that contain the words as typed, then scattered letters, so a
+// long title that happens to hold the letters cannot crowd out the obvious
+// hit. The host's matcher then ranks what is left; explicit requests are left
+// entirely to it.
 function subsequence(needle, hay) {
   var j = 0
   for (var i = 0; i < hay.length && j < needle.length; i++) if (hay.charAt(i) === needle.charAt(j)) j++
   return j === needle.length
 }
 
+function startsWord(needle, hay) {
+  for (var at = hay.indexOf(needle); at >= 0; at = hay.indexOf(needle, at + 1))
+    if (at === 0 || !/[a-z0-9]/.test(hay.charAt(at - 1))) return true
+  return false
+}
+
+// 0: every word starts a word, 1: every word appears as typed, 2: letters in order, -1: no match.
+function quality(words, hay) {
+  var tier = 0
+  for (var k = 0; k < words.length; k++) {
+    if (startsWord(words[k], hay)) continue
+    if (hay.indexOf(words[k]) >= 0) tier = Math.max(tier, 1)
+    else if (subsequence(words[k], hay)) tier = 2
+    else return -1
+  }
+  return tier
+}
+
 function filter(list, req) {
   if (!req.limit) return list
   var words = req.text.toLowerCase().split(/\s+/).filter(function(w) { return !!w })
-  var out = []
-  for (var i = 0; i < list.length && out.length < req.limit; i++) {
+  var tiers = [[], [], []]
+  for (var i = 0; i < list.length; i++) {
     var w = list[i]
     if (w.current && !req.current) continue
-    var hay = (w.title + " " + w.cls).toLowerCase()
-    var ok = true
-    for (var k = 0; k < words.length && ok; k++) ok = subsequence(words[k], hay)
-    if (ok) out.push(w)
+    var t = quality(words, (w.title + " " + w.cls).toLowerCase())
+    if (t >= 0) tiers[t].push(w)
   }
-  return out
+  return tiers[0].concat(tiers[1], tiers[2]).slice(0, req.limit)
 }
 
 function focusCommand(addr, lua) {

@@ -94,6 +94,25 @@ TestCase {
     compare(Windows.filter(list, req).length, 1)
   }
 
+  function test_root_cap_keeps_the_obvious_hit() {
+    // Five recent windows hold c..h..r scattered through their titles; the
+    // least recent one is Chromium. The cap must not cut it.
+    var many = ["Archive Manager", "nvim ~/omarchy/README.md", "Calendar - Thursday", "Chess - Match history report", "Archive: march photos"]
+      .map(function(t, i) { return { address: "0x" + (i + 1), "class": "app", title: t, workspace: { id: 1, name: "1" }, focusHistoryID: i + 1 } })
+      .concat([{ address: "0x9", "class": "chromium", title: "GitHub - Chromium", workspace: { id: 2, name: "2" }, focusHistoryID: 9 }])
+    var list = Windows.windows(many)
+    var picked = Windows.filter(list, Windows.request({ query: "chr", scope: "" }, "windows"))
+    compare(picked.length, 5)
+    compare(picked[0].address, "0x9")
+    // Same tier: most recently used first ("arch" starts a word in both archives, appears inside "omarchy").
+    picked = Windows.filter(list, Windows.request({ query: "arch", scope: "" }, "windows"))
+    compare(picked.map(function(w) { return w.address }), ["0x1", "0x5", "0x2"])
+    compare(Windows.quality(["git", "chr"], "github - chromium chromium"), 0)
+    compare(Windows.quality(["hub"], "github - chromium"), 1)
+    compare(Windows.quality(["gtb"], "github - chromium"), 2)
+    compare(Windows.quality(["xyz"], "github - chromium"), -1)
+  }
+
   function test_empty_explicit_list_says_so() {
     var req = Windows.request({ query: ">", command: { rest: "" }, scope: "" }, "windows")
     var rows = Windows.rows([], req, null)
