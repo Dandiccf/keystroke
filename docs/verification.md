@@ -1,5 +1,35 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
+## Graphics-loss recovery (2026-10-02)
+
+- A compositor close or a lost graphics resource on the palette's layer surface
+  now cancels the palette, stops the closing animation and completes pending
+  dmenu requests (`windowClosed()` in `Keystroke.qml`). Resource loss is logged
+  and notified once; the next open retries and clears the error, including a
+  picker opened straight after the failure. Before, the palette stayed logically
+  open with no surface, and a waiting `omarchy-menu-select` never returned.
+  Found on a two-monitor machine where the full-screen surface ran out of GPU
+  memory.
+- The two signals may arrive in either order: a loss after the close is still
+  reported, once until the next open. `snapWindow()` is the one place that
+  hides the window at once, shared with the instant transition.
+- `tests/palette_graphics_loss_check.py` emits the close and resource-loss
+  signals from an offscreen Window: immediate unmap despite the slide animation,
+  inspectable error, retry, a stray close with nothing open, both signal orders, picker completion
+  without a selection, one notification per failure. It fails on `main` without
+  the change (checked).
+- Ran: the check above, 270 QML tests, `tests/lint.sh`.
+- Not exercised: a real GPU allocation failure (the signals are injected).
+- Review: a close or loss while the palette is already leaving only snaps the
+  window; it no longer cancels a second time, which dropped the paste that
+  Ctrl+Enter's copy-and-close leaves running. The check covers it and fails
+  without the change. Against Quickshell 0.3.1's own `ProxyWindowBase` (a
+  `FloatingWindow` in place of the `PanelWindow`, offscreen), `QWindow.close()`
+  on the backing window emitted `closed` once and closed the palette at once,
+  `sceneGraphError` emitted `resourcesLost` alone and finished a waiting picker
+  with no selection, and normal fade, instant and `close()` IPC closes emitted
+  neither.
+
 ## Browser search 1.1.0: Helium (2026-09-30)
 
 - `helium.desktop` (the ID Helium's deb, rpm, tarball and the AUR
