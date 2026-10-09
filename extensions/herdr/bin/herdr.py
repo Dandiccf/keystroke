@@ -101,11 +101,16 @@ def client_session(argv):
     """The session a running `herdr` client is attached to, or None for a server or another tool."""
     if not argv or os.path.basename(argv[0]) != "herdr" or "server" in argv:
         return None
+    # A --remote client shows another machine's session, a --no-session one runs its own.
+    if any(a in ("--remote", "--no-session") or a.startswith("--remote=") for a in argv):
+        return None
     name = "default"
-    for i, arg in enumerate(argv[:-1]):
-        if arg == "--session":
+    for i, arg in enumerate(argv):
+        if arg.startswith("--session="):
+            name = arg[len("--session="):]
+        elif i + 1 < len(argv) and arg == "--session":
             name = argv[i + 1]
-        elif arg == "attach" and i > 0 and argv[i - 1] == "session":
+        elif i + 1 < len(argv) and arg == "attach" and i > 0 and argv[i - 1] == "session":
             name = argv[i + 1]
     # `herdr <subcommand> ...` is a one-off CLI call, not a client showing the session.
     if len(argv) > 1 and argv[1] in ("api", "workspace", "worktree", "tab", "pane", "agent", "notification",
