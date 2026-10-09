@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Keystroke owns this process. Do not attach to the desktop application's server.
 set -euo pipefail
-minimum=0.159.2
+minimum=0.153.2
 actual="$(codex --version 2>/dev/null || true)"
 IFS=. read -r min_major min_minor min_patch <<< "$minimum"
 compatible=false
