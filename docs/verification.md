@@ -17,7 +17,7 @@
   unaffected (Color is the only name QtQuick, QtQml or Quickshell 0.3.2 add);
   no QML file or inline test QML in the repository reads a bare `Color`.
 - Qt 6.11.2 (this machine), merged with dev: `bin/keystroke test` passes
-  (272 QML tests, every integration check, eight extensions, lint exit 0
+  (272 QML tests, every integration check, nine extensions, lint exit 0
   with the same 265 warnings as dev) and so do the Translate and GIF Search
   palette checks. `tools/showcase/offscreen.py` renders all 35 screens.
 - Qt 6.12.0, offscreen only: qt6-base, -declarative, -svg, -wayland 6.12.0
