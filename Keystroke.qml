@@ -733,7 +733,9 @@ Item {
   // palette (or a dmenu caller waiting). There is no surface left to animate.
   function windowClosed() {
     if (!root.opened && !root.closing) return
-    root.cancel()
+    // A palette already leaving was canceled when it started to; a second
+    // cancel would drop the paste that close left running.
+    if (root.opened) root.cancel()
     root.snapWindow()
   }
   // The two signals may arrive in either order, so the report does not depend

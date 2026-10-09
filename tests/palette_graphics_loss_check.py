@@ -26,6 +26,10 @@ with tempfile.TemporaryDirectory(prefix="keystroke-palette-graphics-loss-") as t
     notify = work / "bin/omarchy-notification-send"
     notify.write_text('#!/bin/sh\nprintf "notification\\n" >> "$HOME/notifications"\n')
     notify.chmod(0o755)
+    # Ctrl+Enter's copy-close-paste, with stand-ins for wl-copy and the paste key.
+    for name, body in [("wl-copy", 'cat > "$HOME/clip"'), ("paste", 'printf "pasted\\n" >> "$HOME/pasted"')]:
+        (work / "bin" / name).write_text("#!/bin/sh\n" + body + "\n")
+        (work / "bin" / name).chmod(0o755)
     (work / "shell.qml").write_text('''import QtQuick
 import Quickshell
 import "project"
@@ -37,6 +41,13 @@ ShellRoot {
       palette:{animations:"fluid", windowTransition:transition}}))
   }
   Keystroke { id: palette; omarchyPath: Quickshell.env("HOME") }
+  // Closes the window once a paste has closed the palette and its fade runs.
+  property bool closeWhileLeaving: false
+  Connections { target: palette; function onOpenedChanged() {
+    if (palette.opened || !test.closeWhileLeaving) return
+    test.closeWhileLeaving = false
+    Qt.callLater(function() { test.check(palette.closing, "the paste leaves with a fade"); palette.testPanel.closed() })
+  } }
   Timer { interval:300; running:true; onTriggered: {
     test.configure("slide")
     palette.open('{}')
@@ -77,13 +88,22 @@ ShellRoot {
     palette.open(JSON.stringify({mode:"input",prompt:"Retry"}))
     test.check(palette.opened && palette.errorMessage === "", "input picker retries cleanly")
     palette.cancel()
+
+    // A close while leaving must not cancel the paste that close left running.
+    palette.pasteHelper = Quickshell.env("HOME") + "/bin/paste"
+    palette.open('{}')
+    test.closeWhileLeaving = true
+    palette.perform({type:"paste", text:"hello"}, {})
     finish.start()
   } }
-  Timer { id: finish; interval:300; onTriggered: { console.log("PASS palette graphics loss"); Qt.quit() } }
+  Timer { id: finish; interval:1000; onTriggered: {
+    test.check(!test.closeWhileLeaving && !palette.closing && !palette.testPanel.visible, "the paste closed and the close snapped the fade")
+    console.log("PASS palette graphics loss"); Qt.quit()
+  } }
   Timer { interval:10000; running:true; onTriggered: { console.log("FAIL timeout"); Qt.quit() } }
 }
 ''')
-    env = dict(os.environ, HOME=str(work), XDG_RUNTIME_DIR=str(work), QT_QPA_PLATFORM="offscreen", QT_QPA_PLATFORMTHEME="generic", QT_QUICK_BACKEND="software", QML_IMPORT_PATH=str(work), OMARCHY_PATH="/usr/share/omarchy")
+    env = dict(os.environ, PATH=str(work / "bin") + os.pathsep + os.environ["PATH"], HOME=str(work), XDG_RUNTIME_DIR=str(work), QT_QPA_PLATFORM="offscreen", QT_QPA_PLATFORMTHEME="generic", QT_QUICK_BACKEND="software", QML_IMPORT_PATH=str(work), OMARCHY_PATH="/usr/share/omarchy")
     env.pop("DISPLAY", None)
     env.pop("WAYLAND_DISPLAY", None)
     result = subprocess.run(["quickshell", "-p", str(work / "shell.qml")], env=env, capture_output=True, text=True, timeout=20)
@@ -92,5 +112,6 @@ ShellRoot {
     assert not any(error in output for error in ["TypeError", "ReferenceError", "Binding loop"]), output
     assert (work / "picker-done").exists(), "failed picker did not signal completion"
     assert not (work / "picker-selection").exists(), "failed picker must not return a selection"
+    assert (work / "pasted").exists(), "a close while leaving dropped the paste"
     assert (work / "notifications").read_text().splitlines() == ["notification", "notification", "notification", "notification"], "one notification per graphics failure"
-    print("PASS palette graphics loss: close and resource-loss signals, immediate unmap, retry, picker completion, one notification per failure")
+    print("PASS palette graphics loss: close and resource-loss signals, immediate unmap, retry, picker completion, one notification per failure, a paste survives a close while leaving")

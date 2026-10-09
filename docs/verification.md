@@ -20,6 +20,15 @@
   the change (checked).
 - Ran: the check above, 270 QML tests, `tests/lint.sh`.
 - Not exercised: a real GPU allocation failure (the signals are injected).
+- Review: a close or loss while the palette is already leaving only snaps the
+  window; it no longer cancels a second time, which dropped the paste that
+  Ctrl+Enter's copy-and-close leaves running. The check covers it and fails
+  without the change. Against Quickshell 0.3.1's own `ProxyWindowBase` (a
+  `FloatingWindow` in place of the `PanelWindow`, offscreen), `QWindow.close()`
+  on the backing window emitted `closed` once and closed the palette at once,
+  `sceneGraphError` emitted `resourcesLost` alone and finished a waiting picker
+  with no selection, and normal fade, instant and `close()` IPC closes emitted
+  neither.
 
 ## Release 1.5.0 (2026-09-29)
 
