@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "ui"
 import "providers"
@@ -451,7 +452,7 @@ Item {
   property var confirmPending: null       // { message, detail, confirmText, cancelText, run }
   readonly property var current: rows.length && selected >= 0 && selected < rows.length ? rows[selected] : ({})
   readonly property bool compact: paletteSettings.density !== "comfortable"
-  readonly property color accent: paletteSettings.accent === "ember" ? "#ee987e" : paletteSettings.accent === "violet" ? "#b5a0ef" : paletteSettings.accent === "mint" ? "#8bceb4" : Color.accent
+  readonly property color accent: paletteSettings.accent === "ember" ? "#ee987e" : paletteSettings.accent === "violet" ? "#b5a0ef" : paletteSettings.accent === "mint" ? "#8bceb4" : Commons.Color.accent
   readonly property bool clipboardChoice: root.dictationMode || !!(root.current.action && root.current.action.type === "dictation-copy")
   // Every key that acts on the selection, for the footer: ↵ first and
   // brightest, then what the row or the screen offers beyond it. The rows
@@ -531,13 +532,13 @@ Item {
   }
 
   // Theme surfaces, same tokens as the stock menu.
-  readonly property color background: Color.menu.background
-  readonly property color foreground: Color.menu.text
-  readonly property color scrim: Color.menu.scrim
-  readonly property color selectedBackground: Color.menu.selectedBackground
-  readonly property color selectedText: Color.menu.selectedText
-  readonly property var borderSpec: Border.surfaceSpec("menu", "border", Color.menu.border, Math.max(1, Style.space(2)))
-  readonly property var selectedBorderSpec: Border.surfaceSpec("menu", "selected-border", Color.menu.selectedBorder, 0)
+  readonly property color background: Commons.Color.menu.background
+  readonly property color foreground: Commons.Color.menu.text
+  readonly property color scrim: Commons.Color.menu.scrim
+  readonly property color selectedBackground: Commons.Color.menu.selectedBackground
+  readonly property color selectedText: Commons.Color.menu.selectedText
+  readonly property var borderSpec: Border.surfaceSpec("menu", "border", Commons.Color.menu.border, Math.max(1, Style.space(2)))
+  readonly property var selectedBorderSpec: Border.surfaceSpec("menu", "selected-border", Commons.Color.menu.selectedBorder, 0)
   readonly property color hairline: Util.alpha(foreground, 0.12)
   readonly property color muted: Util.alpha(foreground, 0.55)
 
@@ -1615,7 +1616,7 @@ Item {
                 : voice.phase === "transcribing" ? "Finishing transcript…" : voice.phase === "starting" ? "Starting voxtype…"
                 : root.pending && root.showLoading ? "Searching…" : root.errorMessage ? "Needs attention: " + root.errorMessage : root.statusMessage || (root.current.providerName ? root.current.providerName : "Keystroke")
             textFormat: Text.PlainText; elide: Text.ElideRight; width: Math.min(implicitWidth, card.width * 0.5)
-            color: root.errorMessage ? Color.urgent : root.muted; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall
+            color: root.errorMessage ? Commons.Color.urgent : root.muted; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall
             anchors.verticalCenter: parent.verticalCenter
           }
         }
