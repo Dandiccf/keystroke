@@ -35,6 +35,16 @@ TestCase {
             verify(threw, unanswered[i])
         }
     }
+    function test_every_counterpart_resolves() {
+        // A typo in the counterpart column would make every alias of that unit
+        // throw instead of answering; walk the whole table.
+        for (var i = 0; i < Units.UNITS.length; i++) {
+            var row = Units.UNITS[i], aliases = row[2].split(" ")
+            if (!row[3]) continue
+            for (var a = 0; a < aliases.length; a++)
+                compare(Units.convert("1 " + aliases[a]).unit, row[3], aliases[a])
+        }
+    }
     function test_time_gate() {
         verify(Units.isTimeQuery("10 am in London"))
         verify(Units.isTimeQuery("11 pm in new york to tokyo on 2026-09-06"))
