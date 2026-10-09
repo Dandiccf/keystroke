@@ -1,5 +1,52 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
+## Converter target inferred from the source (2026-10-04)
+
+Contributed by Hemal (#24).
+
+- `core/Units.js`: the target is optional. `35 lb` answers in kilograms,
+  `180 cm` in inches, `100 F` in °C, `60 mph` in km/h: each unit names the
+  other system's everyday unit as its counterpart. Metres have none, so
+  Timer's bare `10m` keeps its row; time, data, millilitres and kelvin have
+  none either and still need a target.
+- `tests/tst_units.qml` covers the counterparts, an explicit target after a
+  bare-looking source, the units without one, and `10 in london` staying a
+  time-zone query. qmltestrunner: 271 passed, 0 failed.
+- `bin/keystroke test` on aarch64: every check before the hotkeys check
+  passed; the hotkeys check fails identically on `dev` without this change
+  (it reads the live bindings, where Terminal is not on `Super + Return`).
+  `tests/lint.sh` exit 0, `omarchy plugin validate` exit 0, `git diff --check`
+  clean.
+- Live, on the desktop: `core/Units.js` copied into the installed plugin and
+  the shell restarted. Over IPC, `35 lb` → `15.87573295 kg`, `180 cm` →
+  `70.86614173 in`, `100 f` → `37.77777778 °C`, `60 mph` → `96.56064 km/h`,
+  each the selected answer; `2m in feet`, `10 in london` and `45 usd`
+  (Currency) answered as before; `10m` produced no converter row. Not
+  exercised: `10m` with Timer turned on.
+- In review, offscreen: the real palette at the root with Timer and Currency
+  on (fake `curl` serving a rate table), Files off, and a fake app library
+  holding names that start with a number (`1C Enterprise`, `4G Modem
+  Manager`, `5G Toolkit`, `3D Slicer`, `1Password`, `10 Minute Mail`), run
+  over 80 queries with this `core/Units.js` and with `dev`'s. Every query
+  that answered on `dev` answers the same (`2m in feet`, `72 F to C`,
+  `35 lb to g`, `10 in london`, `45 usd`, `129usd`). `10m`, `10 m`,
+  `10 min`, `45s`, `1h` keep Timer's row with no converter row; `2 min`,
+  `5 s`, `3 cups`, `1 password`, `5 meters`, `250 ml`, `300 k`, `5 gb`,
+  `4k` are unchanged. New answers come only from a number and a unit with a
+  counterpart, and they take the selected row: `1c` and `4g` now answer
+  33.8 °F and 0.14 oz above the app of that name, and a bare hex colour of
+  digits ending in `c` or `f` (`00f`, `20c`) answers as a temperature with
+  the colour row second (`#00f` is unchanged). While an explicit target is
+  being typed, the inferred answer shows at `35 lb`, goes at `35 lb t` and
+  returns at `35 lb to kg`.
+- `tests/tst_units.qml` also walks the whole table: every alias of a unit
+  with a counterpart converts to it. qmltestrunner: 272 passed, 0 failed.
+  `tests/palette_currency_check.py`, `tests/palette_extensions_check.py`,
+  `tests/palette_commands_check.py`, `tests/palette_route_check.py`,
+  `tests/tz_helper_check.py` (52/52), `tools/check_extensions.py` for
+  timer, currency and keyboard-cleaner, `tests/lint.sh`,
+  `bin/keystroke validate` and `git diff --check`: pass.
+
 ## Graphics-loss recovery (2026-10-02)
 
 - A compositor close or a lost graphics resource on the palette's layer surface
