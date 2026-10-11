@@ -1,5 +1,36 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
+
+## File-search lifecycle and mount boundaries (2026-10-11)
+
+- Based on upstream main `b7a10ca`. The Files provider now cancels an
+  outstanding walk when the palette closes, switches into a picker or
+  another provider scope, or clears the root query. Cancellation marks the
+  walk superseded, so partial output from the old search is not cached.
+- `tests/palette_files_lifecycle_check.py` exercises the real palette with a
+  slow, SIGTERM-aware search fixture. Close, action execution, empty query,
+  navigation and picker transitions all stop the process before its
+  three-second watchdog; cancelled output is discarded. The same test
+  fails on unmodified main at the first close transition.
+- Live Omarchy test with the provider-only patch: a real fd process was
+  observed while the palette was open and was gone immediately after IPC
+  cancellation. Existing local Codex customizations were preserved.
+- Searches now pass `--one-file-system` by default. The optional
+  **Search mounted filesystems** setting restores traversal across mounts.
+  Unit coverage checks both argv policies and separate cache keys. This
+  avoids entering other filesystems; cancellation alone cannot interrupt
+  an already uninterruptible FUSE request.
+- Final focused checks: 273 QML tests passed; real-fd integration and
+  palette lifecycle regression passed. Plugin validation and lint passed.
+- The full test command reached the hotkeys integration check, which fails
+  three expectations against this desktop's current bindings. The identical
+  failures reproduce on unmodified upstream main; preceding integration
+  checks pass.
+- Physical verification with the final patch: hibernate selected through
+  Keystroke completed successfully and restored the previous session on
+  the original Omarchy kernel. systemd reported a successful hibernate
+  return, and the kernel logged hibernation exit without a freezer timeout.
+
 ## Release 1.5.1 (2026-10-09)
 
 - Contents since 1.5.0, all merged from contributor PRs on 2026-10-09: the
