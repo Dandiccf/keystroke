@@ -1,6 +1,39 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
 
+## Release 1.5.2 (2026-10-24)
+
+- Contents since 1.5.1: #34 (file walks cancelled, mounts opt-in), #39 with
+  cb3f314 (GIF previews cached, unloaded off screen, no `sourceSize`), #31
+  with ec87e94 (both Chrome bookmark files), ce3cb4d (search engine setting
+  and `g`, from #36), and 56fa62c below. `matching/` is unchanged since
+  1.4.2 (SHA-256 `192ef1ec...` for the engine binary).
+- Security (56fa62c), from the marketplace review of 1.5.1
+  (omacom/omarchy-plugin-marketplace#10706): the `copy` effect passed its
+  text to `wl-copy` as an argument, readable in `/proc/<pid>/cmdline`. It now
+  goes through `ClipboardTransfer` on stdin, like paste and dictation; the
+  palette closes on `copied`. Same class, fixed together: `finishRequest`
+  wrote a dmenu selection through `bash -c "printf ... <selection>"`, now
+  `bash -c 'cat > "$1"; : > "$2"'` with the selection on stdin (identical
+  file bytes, `<selection>\n`); Translate's copy (`wl-copy -- <text>`) and
+  paste (`sh -c '... "$1"' <text>`) now write stdin (Translate 1.0.2, paste
+  is a private `translate-paste` effect delivered by `activate`).
+- `tests/palette_copy_check.py`, new: the real palette with `wl-copy` and
+  `bash` stand-ins that log argv. A calculator answer and a multi-line
+  secret reach `wl-copy` with no arguments and the exact bytes on stdin;
+  input typed at an `omarchy-menu-input`-style prompt lands in the
+  selection file byte for byte and never appears in a bash argument. The old
+  host fails on the copy (`['--', '5']`); a copy-fixed host with the old
+  `finishRequest` fails on the bash argv. Translate: its palette check now
+  rejects any `wl-copy` argument; a direct probe of `clipboard(text, true)`
+  showed `wl-copy` with no arguments, the text on stdin, then `wtype`.
+- Passed on Qt 6.11.2 / Quickshell 0.3.1: `bin/keystroke validate`;
+  `QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software bin/keystroke test`
+  (278 QML tests, every integration check, all ten extensions, lint with
+  only the known `QProcess::ExitStatus` signal-handler noise, now on the two
+  new `onExited` handlers too). Not exercised: Qt 6.12, a live install in the
+  running shell.
+
 ## Web search engine and command (2026-10-24)
 
 - From the web search extension proposed in #36: instead of shipping it as
