@@ -58,8 +58,16 @@ not a guaranteed Keystroke service: availability or access may change. Search
 phrases are sent to that proxy and GIPHY. Requests have a 15-second timeout and
 a 2 MB response limit; errors have an explicit Retry button.
 
-Qt loads animated previews from HTTPS GIPHY media URLs. Copying a GIF downloads
-its original from GIPHY with a 20-second socket timeout, validates its GIF header
+Qt loads animated previews from HTTPS GIPHY media URLs. Visible tiles cache
+decoded frames at up to 160 by 100 pixels; scrolling a tile out of view, hiding
+the view or dismissing the service clears its source and releases those frames.
+Scrolling back may fetch the preview again. Caching is required to loop
+[sequential image streams](https://doc.qt.io/qt-6/qml-qtquick-animatedimage.html)
+and avoids a recursive restart crash observed with Qt 6.12.0. Frame count still
+affects memory use, so this is not a fixed total memory limit.
+
+Copying a GIF downloads its original from GIPHY with a 20-second socket timeout,
+validates its GIF header
 and size, then passes bytes to `wl-copy --type image/gif`. Copying a link starts
 the helper and `wl-copy` without downloading media. The helper accepts only
 HTTPS GIPHY URLs, including redirects. The clipboard is changed only on a copy
@@ -75,6 +83,7 @@ From the repository root:
 QT_QPA_PLATFORMTHEME=generic bin/keystroke check-extensions extensions/gif-search
 python3 extensions/gif-search/tests/test_copy.py
 python3 extensions/gif-search/tests/palette_check.py
+python3 extensions/gif-search/tests/preview_check.py
 ```
 
 For local discovery, link this folder into
@@ -88,3 +97,16 @@ pass. A live search and animated preview download worked; the production helper
 downloaded a 2,987,777-byte original GIF into a fake clipboard receiver. The grid
 was visually inspected with that real preview. Desktop app pasting and a live
 installation were not exercised.
+
+`preview_check.py` runs the real view offscreen with a synthetic two-frame GIF
+in a sequential `data:` stream, an isolated HOME and core dumping disabled.
+It checks repeated playback, cached frame dimensions, offscreen tile unloading,
+hide/reopen and dismissal without network requests or clipboard access.
+
+Verified on 2026-10-21 with Qt 6.12.0 and Quickshell 0.3.2.r7.g2b4501a:
+plugin validation, extension lint/QML tests, clipboard helper tests, palette
+integration and the sequential preview test pass. The preview test reproduces
+SIGSEGV with the original uncached view and passes with this change. The same
+preview change was exercised in the live palette with real media. The full
+Keystroke test suite and pasting into other desktop apps were not covered by
+these checks.
