@@ -6,16 +6,33 @@ import json
 import os
 from pathlib import Path
 import resource
+import struct
 import subprocess
 import tempfile
 
 extension = Path(__file__).resolve().parents[1]
+WIDTH, HEIGHT = 240, 100  # the shape of a 16:9-ish GIPHY fixed_height_small preview
+
+
+def frame(index):
+    # One solid frame, LZW-coded without compression: a clear code before every
+    # pair of pixels keeps the code width at 3 bits, so no table logic is needed.
+    codes = []
+    for i in range(WIDTH * HEIGHT):
+        if i % 2 == 0:
+            codes.append(4)
+        codes.append(index)
+    codes.append(5)
+    bits = sum(code << (3 * i) for i, code in enumerate(codes))
+    data = bits.to_bytes((3 * len(codes) + 7) // 8, "little")
+    blocks = b"".join(bytes([len(data[i:i + 255])]) + data[i:i + 255] for i in range(0, len(data), 255))
+    return (bytes.fromhex("21f904000a000000") + b"\x2c" + struct.pack("<4HB", 0, 0, WIDTH, HEIGHT, 0)
+            + b"\x02" + blocks + b"\x00")
+
+
 # Two 100 ms frames, no GIF loop extension: Qt must restart the sequential stream.
-gif = bytes.fromhex(
-    "47494638396101000100800000000000ffffff"
-    "21f904000a0000002c0000000001000100000202440100"
-    "21f904000a0000002c00000000010001000002024c01003b"
-)
+gif = (b"GIF89a" + struct.pack("<2H3B", WIDTH, HEIGHT, 0x80, 0, 0) + bytes.fromhex("000000ffffff")
+       + frame(0) + frame(1) + b"\x3b")
 url = "data:image/gif;base64," + base64.b64encode(gif).decode()
 libc = ctypes.CDLL(None)
 
@@ -85,12 +102,15 @@ ShellRoot {
       var loaded = previews.filter(function(p) { return String(p.source).length > 0 })
       switch (test.stage) {
       case 0:
-        if (!loaded.length || loaded[0].testFrameChanges < 8) return
+        // Qt 6.12 restarts a GIF without a loop extension; 6.11 plays it once
+        // and stops. Either way the stream must end without crashing.
+        if (!loaded.length || loaded[0].frameCount !== 2) return
+        if (loaded[0].testFrameChanges < 8 && (loaded[0].playing || test.ticks < 10)) return
         test.check(loaded.length < 24, "only visible previews are loaded")
         loaded.forEach(function(p) {
-          test.check(p.status === Image.Ready && p.frameCount === 2, "GIF decoded")
-          test.check(p.cache && p.sourceSize.width > 0 && p.sourceSize.width <= 160
-            && p.sourceSize.height > 0 && p.sourceSize.height <= 100, "bounded cached frame dimensions")
+          test.check(p.status === Image.Ready && p.cache, "GIF decoded and cached")
+          test.check(p.implicitWidth === __WIDTH__ && p.implicitHeight === __HEIGHT__,
+            "frames decoded at the GIF's own size and shape: " + p.implicitWidth + "x" + p.implicitHeight)
         })
         test.firstPreview = loaded[0]
         test.find(view, "gifSearchGrid", [])[0].positionViewAtIndex(23, GridView.End)
@@ -118,14 +138,14 @@ ShellRoot {
       case 5:
         if (test.ticks < 2) return
         test.check(loaded.length === 0, "dismiss releases previews")
-        console.log("PASS sequential GIF loops, bounded dimensions, scroll, hide, reopen, dismiss")
+        console.log("PASS sequential GIF ends safely, frames at native size, scroll, hide, reopen, dismiss")
         Qt.quit()
       }
     }
   }
   Timer { interval: 15000; running: true; onTriggered: { console.log("FAIL timeout", test.stage); Qt.exit(1) } }
 }
-'''.replace("__URL__", json.dumps(url)))
+'''.replace("__URL__", json.dumps(url)).replace("__WIDTH__", str(WIDTH)).replace("__HEIGHT__", str(HEIGHT)))
     env = dict(os.environ, HOME=temp, XDG_CONFIG_HOME=str(work / ".config"),
                XDG_DATA_HOME=str(work / ".local/share"), XDG_STATE_HOME=str(work / ".local/state"),
                XDG_CACHE_HOME=str(work / ".cache"), XDG_RUNTIME_DIR=temp,
@@ -139,4 +159,4 @@ ShellRoot {
     output = result.stdout + result.stderr
     assert result.returncode == 0 and "PASS sequential GIF" in output and "FAIL" not in output, output + f"\nexit={result.returncode}"
     assert not any(error in output for error in ("TypeError", "ReferenceError", "Unable to assign")), output
-    print("PASS sequential GIF loops, bounded dimensions, scroll, hide, reopen, dismiss")
+    print("PASS sequential GIF ends safely, frames at native size, scroll, hide, reopen, dismiss")

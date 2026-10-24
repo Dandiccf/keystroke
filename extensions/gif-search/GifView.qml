@@ -134,7 +134,9 @@ Item {
               asynchronous: true
               // Sequential network GIFs need cached frames to loop safely in Qt.
               cache: true
-              sourceSize: Qt.size(160, 100)
+              // No sourceSize: AnimatedImage scales to exactly that size (stretching
+              // any other shape) and decodes no frames from a network stream when
+              // only one side is set. The preview rendition is already 100 px tall.
               playing: tile.previewActive
               fillMode: Image.PreserveAspectFit
             }
