@@ -1,6 +1,30 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
 
+## Copy a file or its path from file search (2026-10-24)
+
+- From #21. In Files results, `Ctrl+C` copies the entry itself as a
+  `text/uri-list` (`file://` URI, every path segment percent-encoded so `#`
+  and `?` stay in the name, CRLF-terminated per RFC 2483) and
+  `Ctrl+Shift+C` copies its absolute path as text. Both go to `wl-copy` on
+  stdin; the uri-list adds `--type text/uri-list`. With text selected in the
+  search field, `Ctrl+C` copies the selection as before.
+- Generic: rows may carry `copyAction`/`copyVerb` and
+  `copyAltAction`/`copyAltVerb` (optional fields, `apiVersion` stays 1). The
+  footer lists them after `Ctrl+↵`; the `Ctrl+K` hint yields when a row
+  already shows four keys, because five overflowed the compact footer
+  (seen in an offscreen render: `Open ↵` overlapped the provider name).
+  `site/assets/screenshots/files-tilde.png` re-rendered with the new footer.
+- Passed: `tests/tst_files.qml` (URIs with spaces, `#`, `?`, `%` and
+  non-ASCII; verbs for files and folders); `tests/palette_copy_check.py`
+  extended with real `fd` over a fake home: the footer names both keys,
+  `copySelection(false)` sends `--type text/uri-list` and the URI on stdin,
+  `copySelection(true)` the path, and a calculator row leaves `Ctrl+C`
+  alone; full `bin/keystroke test` (279 QML tests).
+- Not exercised: the key presses themselves (the handler is one line over
+  `copySelection`), and pasting the uri-list into Nautilus or a browser
+  upload field on a live desktop.
+
 ## Release 1.5.2 (2026-10-24)
 
 - Contents since 1.5.1: #34 (file walks cancelled, mounts opt-in), #39 with

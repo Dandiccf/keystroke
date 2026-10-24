@@ -157,13 +157,27 @@ function terminalEffect(entry) {
   return { type: "exec", argv: ["setsid", "uwsm-app", "--", "xdg-terminal-exec", "--dir=" + dir] }
 }
 
+// A file URI, each path segment percent-encoded ("My Report #1.pdf" stays one
+// segment, never a fragment).
+function fileUri(path) {
+  return "file://" + String(path).split("/").map(encodeURIComponent).join("/")
+}
+
+// Ctrl+C copies the file itself, the way a file manager does: a text/uri-list
+// (CRLF-terminated, RFC 2483) that file managers paste as the file and upload
+// fields accept. Ctrl+Shift+C copies the absolute path as text.
+function copyFileEffect(entry) { return { type: "copy", mime: "text/uri-list", text: fileUri(entry.path) + "\r\n" } }
+function copyPathEffect(entry) { return { type: "copy", text: entry.path } }
+
 function row(query, entry, order, known) {
   var name = baseName(entry.rel), kind = kindOf(entry)
   var parent = tilde(parentOf(entry.rel))
   var out = {
     id: entry.rel, title: name, subtitle: parent + (entry.dir ? " · Folder" : ""), icon: ICONS[kind], section: "Files",
     verb: entry.dir ? "Open folder" : "Open", tier: "item", score: known === undefined ? score(query, entry) : known, order: order, remember: true,
-    altVerb: "Open terminal", action: openEffect(entry), altAction: terminalEffect(entry)
+    altVerb: "Open terminal", action: openEffect(entry), altAction: terminalEffect(entry),
+    copyVerb: entry.dir ? "Copy folder" : "Copy file", copyAction: copyFileEffect(entry),
+    copyAltVerb: "Copy path", copyAltAction: copyPathEffect(entry)
   }
   // Only a picture earns the preview pane; the row already says where a
   // file or folder is, and the footer what the keys do.

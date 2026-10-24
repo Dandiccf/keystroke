@@ -47,6 +47,9 @@ os.execv("/bin/bash", ["bash"] + sys.argv[1:])
     secret = "token=hunter2\nline two -- $(id) 'quoted' é"
     typed = "hunter2 $(id) 'q' é"
     selection, done = work / "selection", work / "done"
+    report = work / "Docs/My Report #1.pdf"
+    report.parent.mkdir()
+    report.write_text("report")
     (work / "shell.qml").write_text('''import QtQuick
 import Quickshell
 import "project"
@@ -82,6 +85,35 @@ ShellRoot {
      test.stage++; return
    case 4:
      if (palette.opened) return
+     palette.open(JSON.stringify({query: "~my report"}))
+     test.stage++; return
+   case 5:
+     var file = palette.rows.filter(function(r) { return r.title === "My Report #1.pdf" })[0]
+     if (palette.pending || !file) return
+     palette.selected = palette.rows.indexOf(file)
+     var labels = palette.footerActions.map(function(a) { return a.label + " " + a.key })
+     check(labels.indexOf("Copy file ctrl C") >= 0 && labels.indexOf("Copy path ctrl ⇧ C") >= 0, "footer names both copy keys: " + labels)
+     check(palette.copySelection(false), "Ctrl+C copies the file")
+     test.stage++; return
+   case 6:
+     if (palette.opened) return
+     palette.open(JSON.stringify({query: "~my report"}))
+     test.stage++; return
+   case 7:
+     var again = palette.rows.filter(function(r) { return r.title === "My Report #1.pdf" })[0]
+     if (palette.pending || !again) return
+     palette.selected = palette.rows.indexOf(again)
+     check(palette.copySelection(true), "Ctrl+Shift+C copies the path")
+     test.stage++; return
+   case 8:
+     if (palette.opened) return
+     palette.open(JSON.stringify({query: "2+3"}))
+     test.stage++; return
+   case 9:
+     if (palette.pending || !palette.rows.length) return
+     palette.selected = 0
+     check(!palette.copySelection(false) && palette.opened, "a row without copy actions leaves Ctrl+C alone")
+     palette.cancel()
      console.log(test.failures ? "FAIL palette private text" : "PASS palette private text")
      Qt.quit(); test.stage++; return
    }
@@ -103,7 +135,9 @@ ShellRoot {
     assert "PASS palette private text" in output and "FAIL" not in output, output
     assert "TypeError" not in output and "ReferenceError" not in output, output
     copies = [json.loads(line) for line in log.read_text().splitlines()]
-    assert copies == [{"args": [], "stdin": "5"}, {"args": [], "stdin": secret}], copies
+    assert copies == [{"args": [], "stdin": "5"}, {"args": [], "stdin": secret},
+                      {"args": ["--type", "text/uri-list"], "stdin": "file://" + str(work).replace(" ", "%20") + "/Docs/My%20Report%20%231.pdf\r\n"},
+                      {"args": [], "stdin": str(report)}], copies
     deadline = time.monotonic() + 5
     while not done.exists() and time.monotonic() < deadline:
         time.sleep(0.05)
@@ -111,4 +145,4 @@ ShellRoot {
     assert selection.read_text() == typed + "\n", selection.read_text()
     argvs = bash_log.read_text() if bash_log.exists() else ""
     assert "hunter2" not in argvs, argvs
-    print("PASS palette private text: copies and picker input reach their process on stdin, byte for byte, never as arguments")
+    print("PASS palette private text: copies, file and path copies and picker input reach their process on stdin, byte for byte, never as arguments")

@@ -21,6 +21,18 @@ TestCase {
         verify(Files.cacheKey("re", both) !== Files.cacheKey("re", { files: true, folders: false }))
     }
 
+    function test_rows_copy_the_file_and_its_path() {
+        var file = Files.row("rpt", { path: home + "/Docs/My Report #1.pdf", rel: "Docs/My Report #1.pdf", dir: false }, 0, 10)
+        compare(file.copyVerb, "Copy file")
+        compare(file.copyAction, { type: "copy", mime: "text/uri-list", text: "file://" + home + "/Docs/My%20Report%20%231.pdf\r\n" })
+        compare(file.copyAltVerb, "Copy path")
+        compare(file.copyAltAction, { type: "copy", text: home + "/Docs/My Report #1.pdf" })
+        var folder = Files.row("doc", { path: home + "/Docs", rel: "Docs", dir: true }, 0, 10)
+        compare(folder.copyVerb, "Copy folder")
+        compare(folder.copyAction.text, "file://" + home + "/Docs\r\n")
+        compare(Files.fileUri("/a/%b?c/\u00e9"), "file:///a/%25b%3Fc/%C3%A9")
+    }
+
     function test_mounted_filesystems_are_opt_in() {
         verify(Files.argv("report", home, both).indexOf("--one-file-system") >= 0)
         var mounted = Object.assign({}, both, { searchMounts: true })

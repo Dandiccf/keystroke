@@ -87,7 +87,7 @@ At the root, `~` is the Files provider's declared sigil command (`core/Commands.
 
 Each walk uses two threads, stops after 400 candidates, and has a three-second watchdog. New queries, closing the palette, clearing the query, entering another provider scope, and opening a picker cancel obsolete walks; cancelled output is discarded. Searches use `--one-file-system` by default to avoid entering potentially blocking FUSE or network mounts below home. The `searchMounts` setting opts into crossing filesystem boundaries and forms part of the cache key. Cancellation cannot interrupt an already uninterruptible filesystem request. A summon caches at most 32 queries. Queries need two characters and are bounded to 128 characters/eight terms. NUL-delimited output preserves unusual filenames, and argv avoids shell interpolation. QML rechecks paths below home and ranks the bounded candidates with `Match.match`, retaining the 0.55 file weight and final host-owned selection learning. The main palette shows its configured limit; `~` and the Files screen show up to 60. There is no persistent filesystem index or model for file search. A broad query can hit the candidate cap before reaching the best match; deeper paths or longer queries help. Slow disks and hidden trees may reach the watchdog and return partial results.
 
-`↵` uses `xdg-open`; `Ctrl+↵` opens a terminal in the selected directory (or a file's parent).
+`↵` uses `xdg-open`; `Ctrl+↵` opens a terminal in the selected directory (or a file's parent). `Ctrl+C` copies the entry as a `text/uri-list` (`file://` URI, each segment percent-encoded, CRLF-terminated) and `Ctrl+Shift+C` its absolute path as text, both to `wl-copy` on stdin.
 
 ## Hotkeys
 

@@ -464,8 +464,12 @@ Item {
     var out = [{ label: root.dictationMode ? "Copy" : voice.active ? "Finish" : row.verb || "Select", keys: typesQuery ? ["↵", "tab"] : ["↵"], bright: true }]
     if (root.clipboardChoice) out.push({ label: "Paste", key: "ctrl ↵" })
     else if (can && row.altVerb && !voice.active) out.push({ label: row.altVerb, key: "ctrl ↵" })
+    if (can && row.copyAction && !voice.active) out.push({ label: row.copyVerb, key: "ctrl C" })
+    if (can && row.copyAltAction && !voice.active) out.push({ label: row.copyAltVerb, key: "ctrl ⇧ C" })
     if (can && row.appId) out.push({ label: "Uninstall", key: "del" })
-    out.push({ label: root.compact ? "Settings" : "Provider settings", key: "ctrl K" })
+    // Ctrl+K is the one hint not about the selection; it yields when the row
+    // already fills the footer (Files: open, terminal, copy file, copy path).
+    if (out.length <= 3) out.push({ label: root.compact ? "Settings" : "Provider settings", key: "ctrl K" })
     return out
   }
   readonly property bool previewVisible: !dmenuActive && paletteSettings.showPreview !== false && !!(current.preview || current.previewImage || current.swatch)
@@ -983,6 +987,8 @@ Item {
     out.accessory = String(row.accessory || "")
     out.badge = String(row.badge || (entry.source === "extension" ? "extension" : ""))
     out.altVerb = String(row.altVerb || (row.altAction ? root.defaultVerb(row.altAction) : ""))
+    out.copyVerb = String(row.copyVerb || (row.copyAction ? "Copy" : ""))
+    out.copyAltVerb = String(row.copyAltVerb || (row.copyAltAction ? "Copy" : ""))
     out.disabled = row.disabled === true
     out.remember = row.remember === true
     out.confirm = String(row.confirm || "")
@@ -1177,6 +1183,19 @@ Item {
     else run()
   }
 
+  // Ctrl+C and Ctrl+Shift+C: a row's copyAction and copyAltAction (Files:
+  // the file itself and its path). False when the row offers none.
+  function copySelection(alternate) {
+    if (root.confirmPending || root.dmenuActive || root.dictationMode) return false
+    var row = root.current
+    var effect = row && row.uid && !row.disabled ? (alternate ? row.copyAltAction : row.copyAction) : null
+    if (!effect) return false
+    root.flash(row.uid)
+    root.remember(row)
+    root.perform(effect, row)
+    return true
+  }
+
   function applyDmenuSelection(value) {
     root.opened = false
     root.finishRequest(value)
@@ -1211,7 +1230,8 @@ Item {
     // would be readable by every local user in /proc/<pid>/cmdline. The palette
     // closes once wl-copy has it.
     if (type === "copy") {
-      if (!clipboardTransfer.submit(effect.text === undefined ? "" : effect.text, false)) root.cancel()
+      var copy = effect.mime ? ["wl-copy", "--type", String(effect.mime)] : null
+      if (!clipboardTransfer.submit(effect.text === undefined ? "" : effect.text, false, null, copy)) root.cancel()
       return
     }
     if (type === "query") { root.typeQuery(effect.text); return }
@@ -1505,6 +1525,7 @@ Item {
             else if (event.key === Qt.Key_Right && (atEnd || !text) && !root.dmenuActive && root.rows.length) { root.activate(); event.accepted = true }
             else if ((event.key === Qt.Key_Left || event.key === Qt.Key_Backspace) && !text && !preeditText && (root.scope || root.history.length)) { root.goBack(); event.accepted = true }
             else if (event.key === Qt.Key_Delete && atEnd && !selectedText && root.current.appId) { root.requestUninstall(); event.accepted = true }
+            else if (ctrl && event.key === Qt.Key_C && !selectedText && root.copySelection(!!(event.modifiers & Qt.ShiftModifier))) { event.accepted = true }
             else if (ctrl && event.key >= Qt.Key_1 && event.key <= Qt.Key_8) { root.activateAt(event.key - Qt.Key_1); event.accepted = true }
             else if (ctrl && event.key === Qt.Key_Comma && !root.dmenuActive) { root.navigate("settings", "Settings"); event.accepted = true }
             else if (ctrl && event.key === Qt.Key_K && !root.dmenuActive) {
