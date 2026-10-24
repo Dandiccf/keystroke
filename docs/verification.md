@@ -1,6 +1,30 @@
 > Historical checkpoints below include retired local-model and forked-Voxtype implementations. Current build: [Codex integration verification](codex-integration-verification.md).
 
 
+## Web search engine and command (2026-10-24)
+
+- From the web search extension proposed in #36: instead of shipping it as
+  an extension, AI & Web Search gets a **Search engine** setting (Google,
+  DuckDuckGo, Brave, Bing, Startpage) and a `g` command. The setting drives
+  both the *Continue with* search row under every query and the command, so
+  the two can no longer disagree. `g <text>` is exclusive and returns one
+  answer row; the prefix is the provider's reserved, renameable `prefix`
+  setting. Ctrl+Enter copies the URL. The row id is now `search` (was
+  `google`).
+- `core/AiTargets.js` holds the engine table, which the enum options, its
+  labels and the URL builder all read. Text is percent-encoded with spaces
+  as `+`, so it cannot add parameters.
+- Passed: `tests/tst_ai.qml` (18, new: per-engine URLs, unknown engine falls
+  back to Google, encoding, labels cover every option, the fallback follows
+  the setting, the command is one answer or nothing);
+  `tests/palette_websearch_check.py`, new, drives the real palette offscreen:
+  `g` routing, the fallback, bare-prefix ghost, `/` help, engine setting,
+  renamed prefix (old one stops matching), Smart Match `all` with a blocked
+  request and arithmetic, the settings screen labels, and a literal
+  `xdg-open` launch captured at the bash boundary; full `bin/keystroke test`.
+- Not exercised: a live install in the running shell, and Ctrl+Enter's
+  `wl-copy`.
+
 ## File-search lifecycle and mount boundaries (2026-10-11)
 
 - Based on upstream main `b7a10ca`. The Files provider now cancels an
