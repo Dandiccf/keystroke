@@ -48,8 +48,8 @@ class SearchTests(unittest.TestCase):
             ]}]}}}))
 
     def account_bookmarks(self, profile=None):
-        # Modern Chrome (synced bookmarks) writes AccountBookmarks, often with
-        # no legacy Bookmarks file in the profile at all.
+        # Chrome writes bookmarks saved to the Google Account to AccountBookmarks,
+        # often with no Bookmarks file in the profile at all.
         (profile or self.profile).joinpath("AccountBookmarks").write_text(json.dumps({"roots": {"bookmark_bar": {
             "type": "folder", "children": [
                 {"type": "url", "name": "Keystroke account", "url": "https://example.org/account", "date_added": "70"}
@@ -74,10 +74,10 @@ class SearchTests(unittest.TestCase):
             self.assertEqual(self.search(history=False, bookmarks=False)["results"], [])
             self.assertEqual(self.search("x")["results"], [])
 
-    def test_modern_account_bookmarks_file(self):
-        # Newer Chrome profiles have AccountBookmarks and no legacy Bookmarks.
-        # Bookmarks-only search must read the modern file instead of reporting
-        # that no enabled data exists.
+    def test_account_bookmarks_file(self):
+        # A signed-in Chrome profile can have AccountBookmarks and no Bookmarks.
+        # Bookmarks-only search must read it instead of reporting that no
+        # enabled data exists.
         self.history().close()
         self.account_bookmarks()
         self.assertFalse((self.profile / "Bookmarks").exists())
@@ -88,14 +88,28 @@ class SearchTests(unittest.TestCase):
         self.assertTrue(row["bookmark"] and not row["history"])
         self.assertEqual(row["url"], "https://example.org/account")
 
-    def test_modern_bookmarks_preferred_when_both_exist(self):
-        # During a migration both files can coexist; the modern file wins and
-        # stale legacy entries must not leak through.
+    def test_account_and_device_bookmarks_are_both_searched(self):
+        # Chrome shows account and device-only bookmarks side by side, so a
+        # profile with both files must search both.
         self.bookmarks()
         self.account_bookmarks()
         result = self.search(history=False)
+        self.assertEqual(result["error"], "")
         urls = {r["url"] for r in result["results"]}
-        self.assertEqual(urls, {"https://example.org/account"})
+        self.assertEqual(urls, {"https://example.org/account", "https://example.org/docs", "https://example.org/saved"})
+
+    def test_one_unreadable_bookmark_file_keeps_the_other(self):
+        self.bookmarks()
+        self.profile.joinpath("AccountBookmarks").write_text("{not json")
+        result = self.search(history=False)
+        self.assertEqual({r["url"] for r in result["results"]}, {"https://example.org/docs", "https://example.org/saved"})
+        self.assertIn("bookmarks", result["error"])
+
+    def test_a_url_in_both_files_is_one_row(self):
+        self.bookmarks()
+        self.profile.joinpath("AccountBookmarks").write_text(self.profile.joinpath("Bookmarks").read_text())
+        urls = [r["url"] for r in self.search(history=False)["results"]]
+        self.assertEqual(sorted(urls), ["https://example.org/docs", "https://example.org/saved"])
 
     def test_history_only_never_reads_bookmarks(self):
         # With bookmarks disabled, neither bookmark file may be opened and no
