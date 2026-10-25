@@ -77,6 +77,11 @@ ShellRoot {
       test.check(palette.tn("%1 extension",1) === "1 Erweiterung" && palette.tn("%1 extension",2) === "2 Erweiterungen", "German plural forms")
       test.check(palette.formatNumber(1.5) === "1,5", "Omarchy number formatting")
       test.check(palette.queryProvider(palette.registry.entries.filter(e=>e.key==="calculator")[0],"Rechner","","",null).rows.some(r=>r.title==="Rechner"), "German provider navigation")
+      var names = {calculator:"Calculator",clipboard:"Clipboard History",emoji:"Emoji Picker",converter:"Convert Anything",files:"Search Files",colors:"Pick a Color",extensions:"Extensions"}
+      for (var key in names) {
+        var entry=palette.registry.entries.filter(e=>e.key===key)[0]
+        test.check(palette.queryProvider(entry,names[key],"","",null).rows.length > 0, "English provider name retained: " + key)
+      }
       palette.runQuery()
       test.screenshot("settings-de")
       test.phase=10

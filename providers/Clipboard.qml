@@ -62,7 +62,7 @@ Item {
   function query(ctx) {
     if (ctx.scope && ctx.scope !== "clipboard") return []
     if (!ctx.scope) {
-      var s = ctx.query ? Match.match(ctx.query, root.t("Clipboard History"), "paste copied text images") : 26
+      var s = ctx.query ? Match.match(ctx.query, root.t("Clipboard History"), "Clipboard History paste copied text images") : 26
       return s ? [{ id: "clipboard", title: root.t("Clipboard History"), subtitle: root.t("Text & images, ready to use again"), icon: "󰅌", section: "Clipboard",
                     verb: root.t("Open"), tier: "item", score: s, order: 2, action: { type: "navigate", scope: "clipboard", title: "Clipboard" } }] : []
     }

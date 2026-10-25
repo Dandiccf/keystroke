@@ -91,7 +91,7 @@ Item {
     if (!ctx.query) return ctx.scope ? [] : [navRow(23)]
     var rows = []
     if (!ctx.scope) {
-      var s = Match.match(ctx.query, root.t("Convert Anything"), "converter units timezone temperature")
+      var s = Match.match(ctx.query, root.t("Convert Anything"), "Convert Anything converter units timezone temperature")
       if (s) rows.push(navRow(s))
     }
     var q = ctx.query.trim()

@@ -90,7 +90,7 @@ Item {
     if (!ctx.scope) {
       var counts = { total: list.length, on: list.filter(function(e) { return e.enabled }).length }
       if (!ctx.query) return [root.navRow(8, counts)]
-      var s = Match.match(ctx.query, root.t("Extensions"), "extensions plugins community", "", "extensions plugins community providers turn on off enable disable")
+      var s = Match.match(ctx.query, root.t("Extensions"), "Extensions extensions plugins community", "", "extensions plugins community providers turn on off enable disable")
       return s ? [root.navRow(s, counts)] : []
     }
     if (id === "") return Extensions.screenRows(ctx.query, list)

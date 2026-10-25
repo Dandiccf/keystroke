@@ -28,7 +28,7 @@ Item {
     if (!ctx.query) return ctx.scope ? [] : [navRow(24)]
     var rows = []
     if (!ctx.scope) {
-      var s = Match.match(ctx.query, root.t("Calculator"), "arithmetic math")
+      var s = Match.match(ctx.query, root.t("Calculator"), "Calculator arithmetic math")
       if (s) rows.push(navRow(s))
     }
     var result = Calc.evaluate(ctx.query)

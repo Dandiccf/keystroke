@@ -45,7 +45,7 @@ Item {
     // The host strips the declared prefix (ctx.command); the bare ":" check keeps older hosts working.
     var prefixed = !!ctx.command || ctx.query.charAt(0) === ":"
     if (!ctx.scope && !prefixed) {
-      var s = Match.match(ctx.query, root.t("Emoji Picker"), "smile emoticon")
+      var s = Match.match(ctx.query, root.t("Emoji Picker"), "Emoji Picker smile emoticon")
       return s ? [navRow(s, "Type : followed by a feeling")] : []
     }
     var q = ctx.command ? ctx.command.rest.trim() : prefixed ? ctx.query.slice(1).trim() : ctx.query.trim()

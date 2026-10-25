@@ -21,7 +21,7 @@ Item {
   function query(ctx) {
     if (ctx.scope) return []
     var rows = []
-    var s = ctx.query ? Match.match(ctx.query, root.t("Pick a Color"), "color picker eyedropper screen hex") : 21
+    var s = ctx.query ? Match.match(ctx.query, root.t("Pick a Color"), "Pick a Color color picker eyedropper screen hex") : 21
     if (s) rows.push({ id: "picker", title: root.t("Pick a Color"), subtitle: root.t("Sample any pixel on your screen"), icon: "󰃉", section: "Colors",
                        verb: root.t("Pick color"), tier: "item", score: s, order: 6, action: { type: "exec", argv: ["hyprpicker", "-a", "-f", ctx.settings.format] } })
     var parsed = Colors.parse(ctx.query)

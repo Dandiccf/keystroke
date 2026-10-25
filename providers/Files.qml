@@ -119,7 +119,7 @@ Item {
     var rows = []
     if (!ctx.scope && !req.explicit) {
       if (!ctx.query) { root.cancelWalk(); return [navRow(20)] }
-      var s = Match.match(ctx.query, root.t("Search Files"), "files folders finder home")
+      var s = Match.match(ctx.query, root.t("Search Files"), "Search Files files folders finder home")
       if (s) rows.push(navRow(s))
     }
     if (!req.enabled) { root.cancelWalk(); return rows }
