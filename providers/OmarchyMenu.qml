@@ -43,6 +43,12 @@ Item {
       script: "current=$(powerprofilesctl get 2>/dev/null); omarchy-powerprofiles-list 2>/dev/null | while read -r p; do [[ -z $p ]] && continue; printf '%s\\t%s\\t%s\\n' \"$p\" \"$p\" \"$current\"; done",
       icon: "\udb81\udc0b",
       actionFor: function(value) { return "omarchy-powerprofiles-set autodetect " + Util.shellQuote(value) }
+    },
+    "languages": {
+      script: "current=$(omarchy-language 2>/dev/null); omarchy-language list 2>/dev/null | while IFS=$'\\t' read -r name code english; do [[ -z $code ]] && continue; printf '%s\\t%s\\t%s\\t%s\\n' \"$name\" \"$code\" \"$current\" \"$english\"; done",
+      icon: "\uf1ab",
+      volatile: true,
+      actionFor: function(value) { return "omarchy-language " + Util.shellQuote(value) }
     }
   })
 
@@ -184,7 +190,7 @@ Item {
       takenIds[rowId] = true
       providerRows.push({ id: rowId, parent: menuId, kind: "action", icon: (value === current) ? "✓" : (spec.icon || ""),
         label: label, title: "", target: "", description: "", action: spec.actionFor(value), provider: "",
-        aliases: [], when: "", checked: "", order: 0 })
+        aliases: parts[3] ? [parts[3]] : [], when: "", checked: "", order: 0 })
     }
     var merged = MenuModel.swapProviderRows(root.items, root.itemOrder, menuId, providerRows)
     root.items = merged.items
